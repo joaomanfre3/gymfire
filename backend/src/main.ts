@@ -22,6 +22,8 @@ async function bootstrap() {
   const port = configService.get<number>('PORT') || 3000;
 
   await app.listen(port);
-  console.log(`GymFire API running on http://localhost:${port}`);
+  console.log(`GymFire API running on port ${port}`);
+  return app;
 }
-bootstrap();
+
+export default bootstrap();
