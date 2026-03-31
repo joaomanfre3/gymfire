@@ -14,6 +14,13 @@ export function getUser(): { id: string; username: string; displayName: string; 
   }
 }
 
+export function logout() {
+  localStorage.removeItem('access_token');
+  localStorage.removeItem('refresh_token');
+  localStorage.removeItem('user_info');
+  window.location.href = '/login';
+}
+
 export async function apiFetch(url: string, options?: RequestInit) {
   const token = getToken();
   const res = await fetch(url, {

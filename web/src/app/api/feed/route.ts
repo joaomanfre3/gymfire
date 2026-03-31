@@ -8,8 +8,8 @@ export async function GET(request: Request) {
     const user = await getAuthUser(request);
 
     const { searchParams } = new URL(request.url);
-    const skip = parseInt(searchParams.get('skip') || '0', 10);
-    const limit = Math.min(parseInt(searchParams.get('limit') || '20', 10), 50);
+    const skip = Math.max(0, parseInt(searchParams.get('skip') || '0', 10));
+    const limit = Math.min(Math.max(1, parseInt(searchParams.get('limit') || '20', 10)), 50);
 
     let whereClause: Prisma.PostWhereInput;
 
@@ -50,10 +50,17 @@ export async function GET(request: Request) {
           },
         },
         workout: {
-          include: {
+          select: {
+            id: true,
+            title: true,
+            totalVolume: true,
+            totalSets: true,
+            totalReps: true,
+            durationSecs: true,
             sets: {
-              include: { exercise: true },
-              orderBy: { setNumber: 'asc' },
+              select: { exercise: { select: { name: true } } },
+              distinct: ['exerciseId'],
+              take: 10,
             },
           },
         },

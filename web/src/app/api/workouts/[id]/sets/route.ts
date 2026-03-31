@@ -52,15 +52,28 @@ export async function POST(
     const prRecords: Array<{ type: 'MAX_WEIGHT' | 'MAX_REPS'; value: number; previousValue: number | null }> = [];
 
     if (weight !== undefined && weight !== null && weight > 0) {
-      // Check MAX_WEIGHT PR
-      const maxWeightRecord = await prisma.workoutSet.findFirst({
-        where: {
-          exerciseId,
-          workout: { userId: user.id, finishedAt: { not: null } },
-          weight: { not: null },
-        },
-        orderBy: { weight: 'desc' },
-      });
+      // Check MAX_WEIGHT and MAX_REPS PRs in parallel
+      const [maxWeightRecord, maxRepsAtWeight] = await Promise.all([
+        prisma.workoutSet.findFirst({
+          where: {
+            exerciseId,
+            workout: { userId: user.id, finishedAt: { not: null } },
+            weight: { not: null },
+          },
+          orderBy: { weight: 'desc' },
+        }),
+        (reps !== undefined && reps !== null && reps > 0)
+          ? prisma.workoutSet.findFirst({
+              where: {
+                exerciseId,
+                workout: { userId: user.id, finishedAt: { not: null } },
+                weight,
+                reps: { not: null },
+              },
+              orderBy: { reps: 'desc' },
+            })
+          : Promise.resolve(null),
+      ]);
 
       const currentMaxWeight = maxWeightRecord?.weight ?? 0;
       if (weight > currentMaxWeight) {
@@ -72,18 +85,7 @@ export async function POST(
         });
       }
 
-      // Check MAX_REPS at same weight
       if (reps !== undefined && reps !== null && reps > 0) {
-        const maxRepsAtWeight = await prisma.workoutSet.findFirst({
-          where: {
-            exerciseId,
-            workout: { userId: user.id, finishedAt: { not: null } },
-            weight,
-            reps: { not: null },
-          },
-          orderBy: { reps: 'desc' },
-        });
-
         const currentMaxReps = maxRepsAtWeight?.reps ?? 0;
         if (reps > currentMaxReps) {
           isPR = true;
@@ -113,16 +115,16 @@ export async function POST(
     });
 
     // Create PersonalRecord entries
-    for (const pr of prRecords) {
-      await prisma.personalRecord.create({
-        data: {
+    if (prRecords.length > 0) {
+      await prisma.personalRecord.createMany({
+        data: prRecords.map(pr => ({
           userId: user.id,
           exerciseId,
           workoutId: id,
           type: pr.type,
           value: pr.value,
           previousValue: pr.previousValue,
-        },
+        })),
       });
     }
 

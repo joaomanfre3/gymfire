@@ -45,11 +45,18 @@ export async function GET(request: Request) {
 
     const exercises = await prisma.exercise.findMany({
       where,
-      include: {
-        aliases: true,
-        muscles: true,
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        muscleGroup: true,
+        equipment: true,
+        difficulty: true,
+        category: true,
+        description: true,
       },
       orderBy: { name: 'asc' },
+      take: 200,
     });
 
     return NextResponse.json(exercises);

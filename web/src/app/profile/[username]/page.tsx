@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import { apiFetch, getToken, getUser } from '@/lib/api';
+import { getAvatarColor } from '@/lib/avatar';
 
 interface PublicProfile {
   id: string;
@@ -71,13 +72,6 @@ export default function PublicProfilePage() {
     }
   }
 
-  const avatarColors = ['#FF6B35', '#4ECDC4', '#22C55E', '#6366F1', '#EC4899'];
-  function getColor(name: string) {
-    let h = 0;
-    for (let i = 0; i < name.length; i++) h = name.charCodeAt(i) + ((h << 5) - h);
-    return avatarColors[Math.abs(h) % avatarColors.length];
-  }
-
   const currentUser = getUser();
   const isOwnProfile = currentUser && profile && currentUser.username === profile.username;
 
@@ -105,7 +99,7 @@ export default function PublicProfilePage() {
             <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
               <div style={{
                 width: '80px', height: '80px', borderRadius: '50%',
-                background: getColor(profile.displayName),
+                background: getAvatarColor(profile.displayName),
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 color: '#fff', fontWeight: 800, fontSize: '2rem',
                 margin: '0 auto 0.75rem',

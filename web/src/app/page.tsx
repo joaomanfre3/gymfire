@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import { apiFetch, getToken } from '@/lib/api';
+import { timeAgo, formatDuration } from '@/lib/format';
+import { getAvatarColor } from '@/lib/avatar';
 
 interface Post {
   id: string;
@@ -31,33 +33,6 @@ interface Post {
     likes: number;
     comments: number;
   };
-}
-
-function timeAgo(date: string): string {
-  const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
-  if (seconds < 60) return 'agora';
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes} min atrás`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h atrás`;
-  const days = Math.floor(hours / 24);
-  if (days < 7) return `${days}d atrás`;
-  return new Date(date).toLocaleDateString();
-}
-
-function formatDuration(secs: number): string {
-  const h = Math.floor(secs / 3600);
-  const m = Math.floor((secs % 3600) / 60);
-  if (h > 0) return `${h}h ${m}m`;
-  return `${m}m`;
-}
-
-const avatarColors = ['#FF6B35', '#4ECDC4', '#22C55E', '#6366F1', '#EC4899', '#F59E0B', '#8B5CF6'];
-
-function getAvatarColor(name: string): string {
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  return avatarColors[Math.abs(hash) % avatarColors.length];
 }
 
 export default function FeedPage() {

@@ -2,8 +2,17 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { prisma } from './prisma';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret';
-const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'dev-refresh-secret';
+const JWT_SECRET = process.env.JWT_SECRET;
+const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET;
+
+if (!JWT_SECRET || !JWT_REFRESH_SECRET) {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('JWT_SECRET and JWT_REFRESH_SECRET must be set in production');
+  }
+}
+
+const jwtSecret = JWT_SECRET || 'dev-secret-do-not-use-in-production';
+const jwtRefreshSecret = JWT_REFRESH_SECRET || 'dev-refresh-secret-do-not-use-in-production';
 
 export async function hashPassword(password: string): Promise<string> {
   // Truncate to 72 bytes (bcrypt limit)
@@ -17,16 +26,16 @@ export async function verifyPassword(plain: string, hash: string): Promise<boole
 }
 
 export function createAccessToken(userId: string, username: string): string {
-  return jwt.sign({ userId, username }, JWT_SECRET, { expiresIn: '15m' });
+  return jwt.sign({ userId, username }, jwtSecret, { expiresIn: '15m' });
 }
 
 export function createRefreshToken(userId: string): string {
-  return jwt.sign({ userId }, JWT_REFRESH_SECRET, { expiresIn: '7d' });
+  return jwt.sign({ userId }, jwtRefreshSecret, { expiresIn: '7d' });
 }
 
 export function verifyAccessToken(token: string): { userId: string; username: string } | null {
   try {
-    return jwt.verify(token, JWT_SECRET) as { userId: string; username: string };
+    return jwt.verify(token, jwtSecret) as { userId: string; username: string };
   } catch {
     return null;
   }
@@ -34,7 +43,17 @@ export function verifyAccessToken(token: string): { userId: string; username: st
 
 export function verifyRefreshToken(token: string): { userId: string } | null {
   try {
-    return jwt.verify(token, JWT_REFRESH_SECRET) as { userId: string };
+    return jwt.verify(token, jwtRefreshSecret) as { userId: string };
+  } catch {
+    return null;
+  }
+}
+
+export function getAuthPayload(request: Request): { userId: string; username: string } | null {
+  const authHeader = request.headers.get('Authorization');
+  if (!authHeader?.startsWith('Bearer ')) return null;
+  try {
+    return verifyAccessToken(authHeader.slice(7));
   } catch {
     return null;
   }

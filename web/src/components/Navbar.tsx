@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { getToken, getUser } from '@/lib/api';
+import { getToken, getUser, logout } from '@/lib/api';
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -20,12 +20,9 @@ export default function Navbar() {
   }, [pathname]);
 
   const handleLogout = () => {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    localStorage.removeItem('user_info');
     setLoggedIn(false);
     setUser(null);
-    router.push('/');
+    logout();
   };
 
   const isActive = (href: string) => pathname === href;

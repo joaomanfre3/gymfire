@@ -116,45 +116,43 @@ export async function POST(
       },
     });
 
-    // Update user stats
-    await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        totalPoints: { increment: pointsEarned },
-        lastWorkoutAt: now,
-        currentStreak: newStreak,
-        longestStreak,
-      },
-    });
-
-    // Create point transaction
-    await prisma.pointTransaction.create({
-      data: {
-        userId: user.id,
-        amount: pointsEarned,
-        type: 'WORKOUT_COMPLETE',
-        description: `Workout completed: ${finishedWorkout.title || 'Untitled'}`,
-        refId: id,
-      },
-    });
-
-    // Create streak log
-    await prisma.streakLog.upsert({
-      where: {
-        userId_date: {
+    // Update user stats, create point transaction, and log streak in parallel
+    await Promise.all([
+      prisma.user.update({
+        where: { id: user.id },
+        data: {
+          totalPoints: { increment: pointsEarned },
+          lastWorkoutAt: now,
+          currentStreak: newStreak,
+          longestStreak,
+        },
+      }),
+      prisma.pointTransaction.create({
+        data: {
+          userId: user.id,
+          amount: pointsEarned,
+          type: 'WORKOUT_COMPLETE',
+          description: `Workout completed: ${finishedWorkout.title || 'Untitled'}`,
+          refId: id,
+        },
+      }),
+      prisma.streakLog.upsert({
+        where: {
+          userId_date: {
+            userId: user.id,
+            date: today,
+          },
+        },
+        update: {
+          streakDay: newStreak,
+        },
+        create: {
           userId: user.id,
           date: today,
+          streakDay: newStreak,
         },
-      },
-      update: {
-        streakDay: newStreak,
-      },
-      create: {
-        userId: user.id,
-        date: today,
-        streakDay: newStreak,
-      },
-    });
+      }),
+    ]);
 
     return NextResponse.json(finishedWorkout);
   } catch (error) {

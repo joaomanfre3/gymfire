@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import { apiFetch } from '@/lib/api';
+import { getAvatarColor } from '@/lib/avatar';
 
 interface RankEntry {
   rank: number;
@@ -40,12 +41,6 @@ export default function RankingPage() {
 
   const getPoints = (entry: RankEntry) => tab === 'weekly' ? (entry.weeklyPoints ?? 0) : (entry.totalPoints ?? 0);
 
-  const avatarColors = ['#FF6B35', '#4ECDC4', '#22C55E', '#6366F1', '#EC4899', '#F59E0B', '#8B5CF6'];
-  function getColor(name: string): string {
-    let h = 0;
-    for (let i = 0; i < name.length; i++) h = name.charCodeAt(i) + ((h << 5) - h);
-    return avatarColors[Math.abs(h) % avatarColors.length];
-  }
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--background)' }}>
@@ -129,7 +124,7 @@ export default function RankingPage() {
                         width: isFirst ? '56px' : '44px',
                         height: isFirst ? '56px' : '44px',
                         borderRadius: '50%',
-                        background: getColor(entry.displayName || '?'),
+                        background: getAvatarColor(entry.displayName || '?'),
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -187,7 +182,7 @@ export default function RankingPage() {
                   width: '36px',
                   height: '36px',
                   borderRadius: '50%',
-                  background: getColor(entry.displayName || '?'),
+                  background: getAvatarColor(entry.displayName || '?'),
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',

@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import { apiFetch, getToken } from '@/lib/api';
+import { formatTimer } from '@/lib/format';
 
 interface WorkoutSet {
   id: string;
@@ -37,12 +38,17 @@ interface Exercise {
   name: string;
 }
 
-function formatTimer(seconds: number): string {
-  const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
-  const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
-  const s = (seconds % 60).toString().padStart(2, '0');
-  return `${h}:${m}:${s}`;
-}
+const inputStyle: React.CSSProperties = {
+  padding: '0.6rem 0.75rem',
+  background: 'var(--surface-light)',
+  border: '1px solid var(--border)',
+  borderRadius: '0.5rem',
+  color: 'var(--text)',
+  fontSize: '0.9rem',
+  outline: 'none',
+  boxSizing: 'border-box',
+  width: '100%',
+};
 
 export default function ActiveWorkoutPage() {
   const { id } = useParams<{ id: string }>();
@@ -140,24 +146,15 @@ export default function ActiveWorkoutPage() {
   }
 
   // Group sets by exercise
-  const groupedSets: Record<string, WorkoutSet[]> = {};
-  workout?.sets.forEach(s => {
-    const key = s.exercise.name;
-    if (!groupedSets[key]) groupedSets[key] = [];
-    groupedSets[key].push(s);
-  });
-
-  const inputStyle: React.CSSProperties = {
-    padding: '0.6rem 0.75rem',
-    background: 'var(--surface-light)',
-    border: '1px solid var(--border)',
-    borderRadius: '0.5rem',
-    color: 'var(--text)',
-    fontSize: '0.9rem',
-    outline: 'none',
-    boxSizing: 'border-box',
-    width: '100%',
-  };
+  const groupedSets = useMemo(() => {
+    const groups: Record<string, WorkoutSet[]> = {};
+    workout?.sets.forEach(s => {
+      const key = s.exercise.name;
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(s);
+    });
+    return groups;
+  }, [workout?.sets]);
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--background)' }}>
