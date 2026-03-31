@@ -1,0 +1,62 @@
+import { NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { getAuthUser } from '@/lib/auth';
+
+export async function GET(request: Request) {
+  try {
+    const user = await getAuthUser(request);
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const muscleGroup = searchParams.get('muscleGroup');
+    const equipment = searchParams.get('equipment');
+    const category = searchParams.get('category');
+    const search = searchParams.get('search');
+
+    const where: Record<string, unknown> = {
+      OR: [{ isPublic: true }, { createdById: user.id }],
+    };
+
+    if (muscleGroup) {
+      where.muscleGroup = muscleGroup;
+    }
+
+    if (equipment) {
+      where.equipment = equipment;
+    }
+
+    if (category) {
+      where.category = category;
+    }
+
+    if (search) {
+      where.AND = [
+        {
+          OR: [
+            { name: { contains: search, mode: 'insensitive' } },
+            { aliases: { some: { name: { contains: search, mode: 'insensitive' } } } },
+          ],
+        },
+      ];
+    }
+
+    const exercises = await prisma.exercise.findMany({
+      where,
+      include: {
+        aliases: true,
+        muscles: true,
+      },
+      orderBy: { name: 'asc' },
+    });
+
+    return NextResponse.json(exercises);
+  } catch (error) {
+    console.error('Exercises list error:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}

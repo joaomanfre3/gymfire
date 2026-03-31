@@ -1,0 +1,825 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================================
+// USUARIO & AUTH
+// ============================================================
+model User {
+  id            String   @id @default(cuid())
+  username      String   @unique
+  email         String   @unique
+  passwordHash  String?  @map("password_hash")
+  displayName   String   @map("display_name")
+  bio           String?
+  avatarUrl     String?  @map("avatar_url")
+  coverUrl      String?  @map("cover_url")
+  isVerified    Boolean  @default(false) @map("is_verified")
+  isPremium     Boolean  @default(false) @map("is_premium")
+  totalPoints   Int      @default(0) @map("total_points")
+  currentStreak Int      @default(0) @map("current_streak")
+  longestStreak Int      @default(0) @map("longest_streak")
+  lastWorkoutAt DateTime? @map("last_workout_at")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  oauthAccounts   OAuthAccount[]
+  refreshTokens   RefreshToken[]
+  exercises       Exercise[]
+  folders         Folder[]
+  routines        Routine[]
+  workouts        Workout[]
+  personalRecords PersonalRecord[]
+  points          PointTransaction[]
+  followers       Follow[]          @relation("following")
+  following       Follow[]          @relation("follower")
+  posts           Post[]
+  likes           Like[]
+  comments        Comment[]
+  sentMessages    Message[]         @relation("sender")
+  conversations   Participant[]
+  speeds          Speed[]
+  speedViews      SpeedView[]
+  highlights      Highlight[]
+  notifications   Notification[]
+  badges          UserBadge[]
+  achievements    UserAchievement[]
+  blocked         Block[]           @relation("blocker")
+  blockedBy       Block[]           @relation("blocked")
+  reports         Report[]
+  streakLogs      StreakLog[]
+  fireReactions   FireReaction[]
+
+  @@map("users")
+}
+
+model OAuthAccount {
+  id         String @id @default(cuid())
+  provider   String
+  providerId String @map("provider_id")
+  userId     String @map("user_id")
+  user       User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerId])
+  @@map("oauth_accounts")
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("refresh_tokens")
+}
+
+// ============================================================
+// EXERCICIOS & BIBLIOTECA
+// ============================================================
+model Exercise {
+  id               String           @id @default(cuid())
+  name             String
+  slug             String           @unique
+  description      String?
+  instructions     String[]
+  muscleGroup      MuscleGroup      @map("muscle_group")
+  secondaryMuscles MuscleGroup[]    @map("secondary_muscles")
+  equipment        Equipment
+  difficulty       Difficulty       @default(INTERMEDIATE)
+  category         ExerciseCategory
+  videoUrl         String?          @map("video_url")
+  gifUrl           String?          @map("gif_url")
+  thumbnailUrl     String?          @map("thumbnail_url")
+  isPublic         Boolean          @default(true) @map("is_public")
+  isFromLibrary    Boolean          @default(false) @map("is_from_library")
+  externalId       String?          @map("external_id")
+  externalSource   String?          @map("external_source")
+  createdById      String?          @map("created_by_id")
+  createdBy        User?            @relation(fields: [createdById], references: [id])
+  createdAt        DateTime         @default(now()) @map("created_at")
+
+  workoutSets     WorkoutSet[]
+  routineSets     RoutineSet[]
+  personalRecords PersonalRecord[]
+  folderItems     FolderItem[]
+  aliases         ExerciseAlias[]
+  muscles         ExerciseMuscle[]
+
+  @@map("exercises")
+}
+
+model ExerciseAlias {
+  id         String   @id @default(cuid())
+  name       String
+  exerciseId String   @map("exercise_id")
+  exercise   Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+
+  @@map("exercise_aliases")
+}
+
+model ExerciseMuscle {
+  id         String  @id @default(cuid())
+  exerciseId String  @map("exercise_id")
+  exercise   Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  muscleName String  @map("muscle_name")
+  isPrimary  Boolean @default(true) @map("is_primary")
+  muscleUrl  String? @map("muscle_url")
+
+  @@map("exercise_muscles")
+}
+
+enum MuscleGroup {
+  CHEST
+  BACK
+  SHOULDERS
+  BICEPS
+  TRICEPS
+  FOREARMS
+  CORE
+  ABS
+  GLUTES
+  QUADS
+  HAMSTRINGS
+  CALVES
+  FULL_BODY
+  CARDIO
+  OTHER
+}
+
+enum Equipment {
+  BARBELL
+  DUMBBELL
+  MACHINE
+  CABLE
+  BODYWEIGHT
+  KETTLEBELL
+  RESISTANCE_BAND
+  SMITH_MACHINE
+  EZ_BAR
+  TRAP_BAR
+  PULL_UP_BAR
+  DIP_BAR
+  OTHER
+}
+
+enum Difficulty {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum ExerciseCategory {
+  STRENGTH
+  HYPERTROPHY
+  ENDURANCE
+  POWER
+  MOBILITY
+  CARDIO
+  SPORT
+  REHABILITATION
+}
+
+// ============================================================
+// PASTAS & ORGANIZACAO
+// ============================================================
+model Folder {
+  id        String       @id @default(cuid())
+  name      String
+  color     String?
+  icon      String?
+  userId    String       @map("user_id")
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     FolderItem[]
+  createdAt DateTime     @default(now()) @map("created_at")
+
+  @@map("folders")
+}
+
+model FolderItem {
+  id         String   @id @default(cuid())
+  folderId   String   @map("folder_id")
+  folder     Folder   @relation(fields: [folderId], references: [id], onDelete: Cascade)
+  exerciseId String   @map("exercise_id")
+  exercise   Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  order      Int      @default(0)
+
+  @@map("folder_items")
+}
+
+// ============================================================
+// ROTINAS
+// ============================================================
+model Routine {
+  id          String       @id @default(cuid())
+  name        String
+  description String?
+  days        WeekDay[]
+  userId      String       @map("user_id")
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  isPublic    Boolean      @default(false) @map("is_public")
+  isTemplate  Boolean      @default(false) @map("is_template")
+  forks       Int          @default(0)
+  forkedFrom  String?      @map("forked_from")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+  sets        RoutineSet[]
+  workouts    Workout[]
+
+  @@map("routines")
+}
+
+model RoutineSet {
+  id          String   @id @default(cuid())
+  routineId   String   @map("routine_id")
+  routine     Routine  @relation(fields: [routineId], references: [id], onDelete: Cascade)
+  exerciseId  String   @map("exercise_id")
+  exercise    Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  order       Int
+  sets        Int
+  reps        String
+  restSeconds Int      @default(90) @map("rest_seconds")
+  notes       String?
+  weightHint  Float?   @map("weight_hint")
+  rpe         Int?
+
+  @@map("routine_sets")
+}
+
+enum WeekDay {
+  MON
+  TUE
+  WED
+  THU
+  FRI
+  SAT
+  SUN
+}
+
+// ============================================================
+// TREINOS (SESSOES)
+// ============================================================
+model Workout {
+  id              String       @id @default(cuid())
+  userId          String       @map("user_id")
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  routineId       String?      @map("routine_id")
+  routine         Routine?     @relation(fields: [routineId], references: [id], onDelete: SetNull)
+  title           String?
+  notes           String?
+  startedAt       DateTime     @default(now()) @map("started_at")
+  finishedAt      DateTime?    @map("finished_at")
+  durationSecs    Int?         @map("duration_secs")
+  totalVolume     Float        @default(0) @map("total_volume")
+  totalSets       Int          @default(0) @map("total_sets")
+  totalReps       Int          @default(0) @map("total_reps")
+  pointsEarned    Int          @default(0) @map("points_earned")
+  isPublic        Boolean      @default(true) @map("is_public")
+  mood            Mood?
+  bodyWeight      Float?       @map("body_weight")
+  location        String?
+  sets            WorkoutSet[]
+  personalRecords PersonalRecord[]
+  post            Post?
+  createdAt       DateTime     @default(now()) @map("created_at")
+
+  @@map("workouts")
+}
+
+model WorkoutSet {
+  id          String   @id @default(cuid())
+  workoutId   String   @map("workout_id")
+  workout     Workout  @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+  exerciseId  String   @map("exercise_id")
+  exercise    Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  setNumber   Int      @map("set_number")
+  reps        Int?
+  weight      Float?
+  duration    Int?
+  distance    Float?
+  rpe         Int?
+  isWarmup    Boolean  @default(false) @map("is_warmup")
+  isDropset   Boolean  @default(false) @map("is_dropset")
+  isFailure   Boolean  @default(false) @map("is_failure")
+  isPR        Boolean  @default(false) @map("is_pr")
+  notes       String?
+  completedAt DateTime @default(now()) @map("completed_at")
+
+  @@map("workout_sets")
+}
+
+model PersonalRecord {
+  id            String   @id @default(cuid())
+  userId        String   @map("user_id")
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exerciseId    String   @map("exercise_id")
+  exercise      Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  workoutId     String   @map("workout_id")
+  workout       Workout  @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+  type          PRType
+  value         Float
+  previousValue Float?   @map("previous_value")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@map("personal_records")
+}
+
+enum PRType {
+  MAX_WEIGHT
+  MAX_REPS
+  MAX_VOLUME
+  MAX_DURATION
+  MAX_DISTANCE
+}
+
+enum Mood {
+  AMAZING
+  GOOD
+  AVERAGE
+  BAD
+  TERRIBLE
+}
+
+// ============================================================
+// PONTOS & GAMIFICACAO
+// ============================================================
+model PointTransaction {
+  id          String    @id @default(cuid())
+  userId      String    @map("user_id")
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount      Int
+  type        PointType
+  description String?
+  refId       String?   @map("ref_id")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@map("point_transactions")
+}
+
+model StreakLog {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date      DateTime
+  streakDay Int      @map("streak_day")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([userId, date])
+  @@map("streak_logs")
+}
+
+enum PointType {
+  WORKOUT_COMPLETE
+  PERSONAL_RECORD
+  STREAK_BONUS
+  FIRST_OF_DAY
+  SOCIAL_SHARE
+  CHALLENGE_COMPLETE
+  FRIEND_CHALLENGE
+  SPEED_POSTED
+  DAILY_LOGIN
+  PREMIUM_BONUS
+}
+
+// ============================================================
+// SOCIAL — FOLLOWS, POSTS, LIKES, COMENTARIOS
+// ============================================================
+model Follow {
+  id          String   @id @default(cuid())
+  followerId  String   @map("follower_id")
+  follower    User     @relation("follower", fields: [followerId], references: [id], onDelete: Cascade)
+  followingId String   @map("following_id")
+  following   User     @relation("following", fields: [followingId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@unique([followerId, followingId])
+  @@map("follows")
+}
+
+model Post {
+  id            String       @id @default(cuid())
+  userId        String       @map("user_id")
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workoutId     String?      @unique @map("workout_id")
+  workout       Workout?     @relation(fields: [workoutId], references: [id], onDelete: SetNull)
+  caption       String?
+  mediaUrls     String[]     @map("media_urls")
+  type          PostType     @default(WORKOUT)
+  visibility    Visibility   @default(PUBLIC)
+  likesCount    Int          @default(0) @map("likes_count")
+  commentsCount Int          @default(0) @map("comments_count")
+  sharesCount   Int          @default(0) @map("shares_count")
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
+  likes         Like[]
+  comments      Comment[]
+  tags          PostTag[]
+  fireReactions FireReaction[]
+
+  @@map("posts")
+}
+
+model Like {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  postId    String   @map("post_id")
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([userId, postId])
+  @@map("likes")
+}
+
+model FireReaction {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  postId    String   @map("post_id")
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([userId, postId])
+  @@map("fire_reactions")
+}
+
+model Comment {
+  id        String    @id @default(cuid())
+  userId    String    @map("user_id")
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  postId    String    @map("post_id")
+  post      Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  parentId  String?   @map("parent_id")
+  parent    Comment?  @relation("replies", fields: [parentId], references: [id])
+  replies   Comment[] @relation("replies")
+  content   String
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@map("comments")
+}
+
+model PostTag {
+  id         String @id @default(cuid())
+  postId     String @map("post_id")
+  post       Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  taggedUser String @map("tagged_user")
+
+  @@map("post_tags")
+}
+
+enum PostType {
+  WORKOUT
+  PROGRESS
+  MOTIVATION
+  RECIPE
+  TIP
+  CHALLENGE
+}
+
+enum Visibility {
+  PUBLIC
+  FOLLOWERS
+  PRIVATE
+}
+
+// ============================================================
+// SPEEDS (STORIES FITNESS)
+// ============================================================
+model Speed {
+  id           String     @id @default(cuid())
+  userId       String     @map("user_id")
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mediaUrl     String     @map("media_url")
+  mediaType    MediaType  @default(IMAGE) @map("media_type")
+  caption      String?
+  duration     Int        @default(5000)
+  musicId      String?    @map("music_id")
+  musicName    String?    @map("music_name")
+  stickers     Json?
+  textOverlays Json?      @map("text_overlays")
+  filters      String?
+  workoutRef   String?    @map("workout_ref")
+  exerciseRef  String?    @map("exercise_ref")
+  viewsCount   Int        @default(0) @map("views_count")
+  expiresAt    DateTime   @map("expires_at")
+  isArchived   Boolean    @default(false) @map("is_archived")
+  highlightId  String?    @map("highlight_id")
+  highlight    Highlight? @relation(fields: [highlightId], references: [id], onDelete: SetNull)
+  views        SpeedView[]
+  createdAt    DateTime   @default(now()) @map("created_at")
+
+  @@map("speeds")
+}
+
+model SpeedView {
+  id       String   @id @default(cuid())
+  speedId  String   @map("speed_id")
+  speed    Speed    @relation(fields: [speedId], references: [id], onDelete: Cascade)
+  userId   String   @map("user_id")
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  viewedAt DateTime @default(now()) @map("viewed_at")
+
+  @@unique([speedId, userId])
+  @@map("speed_views")
+}
+
+model Highlight {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  coverUrl  String?  @map("cover_url")
+  order     Int      @default(0)
+  speeds    Speed[]
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("highlights")
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+  BOOMERANG
+}
+
+// ============================================================
+// CHAT EM TEMPO REAL
+// ============================================================
+model Conversation {
+  id            String        @id @default(cuid())
+  type          ConvType      @default(DIRECT)
+  name          String?
+  avatarUrl     String?       @map("avatar_url")
+  lastMessageId String?       @map("last_message_id")
+  lastMessageAt DateTime?     @map("last_message_at")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  participants  Participant[]
+  messages      Message[]
+
+  @@map("conversations")
+}
+
+model Participant {
+  id             String       @id @default(cuid())
+  conversationId String       @map("conversation_id")
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  userId         String       @map("user_id")
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role           ParticipantRole @default(MEMBER)
+  lastReadAt     DateTime?    @map("last_read_at")
+  isMuted        Boolean      @default(false) @map("is_muted")
+  joinedAt       DateTime     @default(now()) @map("joined_at")
+
+  @@unique([conversationId, userId])
+  @@map("participants")
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String       @map("conversation_id")
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       String       @map("sender_id")
+  sender         User         @relation("sender", fields: [senderId], references: [id], onDelete: Cascade)
+  content        String?
+  mediaUrl       String?      @map("media_url")
+  mediaType      MediaType?   @map("media_type")
+  type           MessageType  @default(TEXT)
+  replyToId      String?      @map("reply_to_id")
+  isEdited       Boolean      @default(false) @map("is_edited")
+  isDeleted      Boolean      @default(false) @map("is_deleted")
+  workoutRef     String?      @map("workout_ref")
+  exerciseRef    String?      @map("exercise_ref")
+  postRef        String?      @map("post_ref")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  readBy         MessageRead[]
+
+  @@map("messages")
+}
+
+model MessageRead {
+  id        String   @id @default(cuid())
+  messageId String   @map("message_id")
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  userId    String   @map("user_id")
+  readAt    DateTime @default(now()) @map("read_at")
+
+  @@unique([messageId, userId])
+  @@map("message_reads")
+}
+
+enum ConvType {
+  DIRECT
+  GROUP
+  CHANNEL
+}
+
+enum ParticipantRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  VIDEO
+  WORKOUT_SHARE
+  EXERCISE_SHARE
+  POST_SHARE
+  SPEED_SHARE
+  CHALLENGE
+  GIF
+  AUDIO
+}
+
+// ============================================================
+// NOTIFICACOES
+// ============================================================
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String           @map("user_id")
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      NotificationType
+  title     String
+  body      String
+  data      Json?
+  isRead    Boolean          @default(false) @map("is_read")
+  createdAt DateTime         @default(now()) @map("created_at")
+
+  @@map("notifications")
+}
+
+enum NotificationType {
+  NEW_FOLLOWER
+  LIKE
+  COMMENT
+  MENTION
+  PR_ACHIEVED
+  STREAK_REMINDER
+  STREAK_BROKEN
+  STREAK_MILESTONE
+  FRIEND_WORKOUT
+  FRIEND_PR
+  CHALLENGE_INVITE
+  CHALLENGE_COMPLETE
+  SPEED_VIEW
+  SPEED_REACTION
+  FIRE_REACTION
+  BADGE_EARNED
+  WEEKLY_SUMMARY
+  LEADERBOARD_CHANGE
+  NEW_MESSAGE
+}
+
+// ============================================================
+// BADGES & CONQUISTAS
+// ============================================================
+model Badge {
+  id          String        @id @default(cuid())
+  name        String
+  description String
+  iconUrl     String        @map("icon_url")
+  rarity      Rarity
+  category    BadgeCategory
+  condition   Json
+  users       UserBadge[]
+
+  @@map("badges")
+}
+
+model UserBadge {
+  id       String   @id @default(cuid())
+  userId   String   @map("user_id")
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badgeId  String   @map("badge_id")
+  badge    Badge    @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+  earnedAt DateTime @default(now()) @map("earned_at")
+
+  @@unique([userId, badgeId])
+  @@map("user_badges")
+}
+
+model Achievement {
+  id          String              @id @default(cuid())
+  name        String
+  description String
+  iconUrl     String              @map("icon_url")
+  points      Int
+  category    AchievementCategory
+  condition   Json
+  users       UserAchievement[]
+
+  @@map("achievements")
+}
+
+model UserAchievement {
+  id            String      @id @default(cuid())
+  userId        String      @map("user_id")
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievementId String      @map("achievement_id")
+  achievement   Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+  progress      Float       @default(0)
+  isComplete    Boolean     @default(false) @map("is_complete")
+  completedAt   DateTime?   @map("completed_at")
+
+  @@unique([userId, achievementId])
+  @@map("user_achievements")
+}
+
+enum Rarity {
+  COMMON
+  UNCOMMON
+  RARE
+  EPIC
+  LEGENDARY
+}
+
+enum BadgeCategory {
+  STREAK
+  VOLUME
+  SOCIAL
+  CHALLENGE
+  MILESTONE
+  SPECIAL
+}
+
+enum AchievementCategory {
+  STRENGTH
+  CONSISTENCY
+  SOCIAL
+  EXPLORER
+  ELITE
+}
+
+// ============================================================
+// DESAFIOS
+// ============================================================
+model Challenge {
+  id           String                 @id @default(cuid())
+  title        String
+  description  String
+  type         ChallengeType
+  target       Float
+  unit         String
+  startDate    DateTime               @map("start_date")
+  endDate      DateTime               @map("end_date")
+  creatorId    String                 @map("creator_id")
+  isPublic     Boolean                @default(true) @map("is_public")
+  prize        String?
+  participants ChallengeParticipant[]
+  createdAt    DateTime               @default(now()) @map("created_at")
+
+  @@map("challenges")
+}
+
+model ChallengeParticipant {
+  id          String    @id @default(cuid())
+  challengeId String    @map("challenge_id")
+  challenge   Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  userId      String    @map("user_id")
+  progress    Float     @default(0)
+  isComplete  Boolean   @default(false) @map("is_complete")
+  joinedAt    DateTime  @default(now()) @map("joined_at")
+
+  @@map("challenge_participants")
+}
+
+enum ChallengeType {
+  VOLUME
+  WORKOUTS_COUNT
+  STREAK
+  SPECIFIC_EXERCISE
+  WEIGHT_LOSS
+}
+
+// ============================================================
+// MODERACAO
+// ============================================================
+model Block {
+  id        String @id @default(cuid())
+  blockerId String @map("blocker_id")
+  blocker   User   @relation("blocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blockedId String @map("blocked_id")
+  blocked   User   @relation("blocked", fields: [blockedId], references: [id], onDelete: Cascade)
+
+  @@unique([blockerId, blockedId])
+  @@map("blocks")
+}
+
+model Report {
+  id         String   @id @default(cuid())
+  reporterId String   @map("reporter_id")
+  reporter   User     @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+  targetType String   @map("target_type")
+  targetId   String   @map("target_id")
+  reason     String
+  status     String   @default("pending")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@map("reports")
+}
