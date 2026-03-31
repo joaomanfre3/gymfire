@@ -68,9 +68,9 @@ export default function MyProfilePage() {
       <Navbar />
       <main style={{ maxWidth: '600px', margin: '0 auto', padding: '1.5rem 1rem' }}>
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>Loading profile...</div>
+          <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>Carregando perfil...</div>
         ) : !profile ? (
-          <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)' }}>Could not load profile.</div>
+          <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)' }}>Não foi possível carregar o perfil.</div>
         ) : (
           <div style={{
             background: 'var(--surface)',
@@ -108,7 +108,7 @@ export default function MyProfilePage() {
                 <p style={{ color: 'var(--primary)', fontWeight: 800, fontSize: '1.3rem', margin: 0 }}>
                   {profile.totalPoints.toLocaleString()}
                 </p>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', margin: '0.15rem 0 0' }}>Points</p>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', margin: '0.15rem 0 0' }}>Pontos</p>
               </div>
               <div style={{
                 background: 'var(--surface-light)', borderRadius: '0.75rem', padding: '1rem',
@@ -117,7 +117,7 @@ export default function MyProfilePage() {
                 <p style={{ color: 'var(--accent)', fontWeight: 800, fontSize: '1.3rem', margin: 0 }}>
                   {profile.currentStreak}
                 </p>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', margin: '0.15rem 0 0' }}>Day Streak</p>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', margin: '0.15rem 0 0' }}>Sequência</p>
               </div>
               <div style={{
                 background: 'var(--surface-light)', borderRadius: '0.75rem', padding: '1rem',
@@ -126,7 +126,7 @@ export default function MyProfilePage() {
                 <p style={{ color: 'var(--success)', fontWeight: 800, fontSize: '1.3rem', margin: 0 }}>
                   {profile.workoutsCount ?? 0}
                 </p>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', margin: '0.15rem 0 0' }}>Workouts</p>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', margin: '0.15rem 0 0' }}>Treinos</p>
               </div>
             </div>
 
@@ -135,12 +135,12 @@ export default function MyProfilePage() {
               display: 'flex', justifyContent: 'center', gap: '2rem',
               marginBottom: '1.5rem', color: 'var(--text-secondary)', fontSize: '0.9rem',
             }}>
-              <span><strong style={{ color: 'var(--text)' }}>{profile.followersCount ?? 0}</strong> Followers</span>
-              <span><strong style={{ color: 'var(--text)' }}>{profile.followingCount ?? 0}</strong> Following</span>
+              <span><strong style={{ color: 'var(--text)' }}>{profile.followersCount ?? 0}</strong> Seguidores</span>
+              <span><strong style={{ color: 'var(--text)' }}>{profile.followingCount ?? 0}</strong> Seguindo</span>
             </div>
 
             <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', textAlign: 'center', marginBottom: '1.25rem' }}>
-              Member since {new Date(profile.createdAt).toLocaleDateString()}
+              Membro desde {new Date(profile.createdAt).toLocaleDateString('pt-BR')}
             </p>
 
             <button onClick={handleLogout} style={{
@@ -154,7 +154,7 @@ export default function MyProfilePage() {
               fontWeight: 600,
               cursor: 'pointer',
             }}>
-              Logout
+              Sair
             </button>
           </div>
         )}

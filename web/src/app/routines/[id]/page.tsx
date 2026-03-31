@@ -56,10 +56,10 @@ export default function RoutineDetailPage() {
       if (res.ok) {
         setRoutine(await res.json());
       } else {
-        setError('Routine not found or you do not have access.');
+        setError('Rotina não encontrada ou sem permissão de acesso.');
       }
     } catch {
-      setError('Failed to load routine');
+      setError('Falha ao carregar rotina');
     } finally {
       setLoading(false);
     }
@@ -103,7 +103,7 @@ export default function RoutineDetailPage() {
 
   async function handleStartWorkout() {
     if (!getToken()) {
-      alert('Please login to start a workout');
+      alert('Faça login para iniciar um treino');
       return;
     }
     try {
@@ -134,11 +134,11 @@ export default function RoutineDetailPage() {
       <Navbar />
       <main style={{ maxWidth: '680px', margin: '0 auto', padding: '1.5rem 1rem' }}>
         <Link href="/routines" style={{ color: 'var(--text-muted)', textDecoration: 'none', fontSize: '0.85rem' }}>
-          &larr; Back to Routines
+          &larr; Voltar às Rotinas
         </Link>
 
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>Loading...</div>
+          <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>Carregando...</div>
         ) : error ? (
           <div style={{
             textAlign: 'center', padding: '3rem',
@@ -158,7 +158,7 @@ export default function RoutineDetailPage() {
                 fontWeight: 600,
                 fontSize: '0.9rem',
                 cursor: 'pointer',
-              }}>Start Workout</button>
+              }}>Iniciar Treino</button>
             </div>
 
             {routine.description && (
@@ -175,7 +175,7 @@ export default function RoutineDetailPage() {
                   background: 'var(--surface)', borderRadius: '0.75rem', border: '1px solid var(--border)',
                   color: 'var(--text-secondary)',
                 }}>
-                  No exercises added yet.
+                  Nenhum exercício adicionado ainda.
                 </div>
               ) : routine.sets.map((s, idx) => (
                 <div key={s.id} style={{
@@ -195,7 +195,7 @@ export default function RoutineDetailPage() {
                   <div style={{ flex: 1 }}>
                     <p style={{ fontWeight: 600, fontSize: '0.95rem', margin: 0 }}>{s.exercise.name}</p>
                     <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', margin: '0.15rem 0 0' }}>
-                      {s.sets} sets x {s.reps} reps | {s.restSeconds}s rest
+                      {s.sets} séries x {s.reps} reps | {s.restSeconds}s descanso
                     </p>
                   </div>
                 </div>
@@ -211,7 +211,7 @@ export default function RoutineDetailPage() {
                     background: 'var(--surface)', border: '1px dashed var(--border)',
                     borderRadius: '0.75rem', color: 'var(--text-secondary)',
                     cursor: 'pointer', fontSize: '0.9rem',
-                  }}>+ Add Exercise</button>
+                  }}>+ Adicionar Exercício</button>
                 ) : (
                   <form onSubmit={handleAddExercise} style={{
                     background: 'var(--surface)', border: '1px solid var(--border)',
@@ -220,14 +220,14 @@ export default function RoutineDetailPage() {
                   }}>
                     <select value={selExercise} onChange={(e) => setSelExercise(e.target.value)}
                       required style={{ ...inputStyle, width: '100%' }}>
-                      <option value="">Select exercise...</option>
+                      <option value="">Selecione um exercício...</option>
                       {exercises.map(ex => (
                         <option key={ex.id} value={ex.id}>{ex.name}</option>
                       ))}
                     </select>
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
                       <div style={{ flex: 1 }}>
-                        <label style={{ display: 'block', color: 'var(--text-muted)', fontSize: '0.75rem', marginBottom: '0.2rem' }}>Sets</label>
+                        <label style={{ display: 'block', color: 'var(--text-muted)', fontSize: '0.75rem', marginBottom: '0.2rem' }}>Séries</label>
                         <input type="number" min={1} value={addSets} onChange={(e) => setAddSets(+e.target.value)} style={{ ...inputStyle, width: '100%' }} />
                       </div>
                       <div style={{ flex: 1 }}>
@@ -235,7 +235,7 @@ export default function RoutineDetailPage() {
                         <input type="number" min={1} value={addReps} onChange={(e) => setAddReps(+e.target.value)} style={{ ...inputStyle, width: '100%' }} />
                       </div>
                       <div style={{ flex: 1 }}>
-                        <label style={{ display: 'block', color: 'var(--text-muted)', fontSize: '0.75rem', marginBottom: '0.2rem' }}>Rest (s)</label>
+                        <label style={{ display: 'block', color: 'var(--text-muted)', fontSize: '0.75rem', marginBottom: '0.2rem' }}>Descanso (s)</label>
                         <input type="number" min={0} value={addRest} onChange={(e) => setAddRest(+e.target.value)} style={{ ...inputStyle, width: '100%' }} />
                       </div>
                     </div>
@@ -243,11 +243,11 @@ export default function RoutineDetailPage() {
                       <button type="submit" style={{
                         flex: 1, padding: '0.6rem', background: 'var(--primary)', color: '#fff',
                         border: 'none', borderRadius: '0.5rem', fontWeight: 600, cursor: 'pointer',
-                      }}>Add</button>
+                      }}>Adicionar</button>
                       <button type="button" onClick={() => setShowAdd(false)} style={{
                         padding: '0.6rem 1rem', background: 'none', border: '1px solid var(--border)',
                         borderRadius: '0.5rem', color: 'var(--text-muted)', cursor: 'pointer',
-                      }}>Cancel</button>
+                      }}>Cancelar</button>
                     </div>
                   </form>
                 )}

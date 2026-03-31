@@ -3,7 +3,7 @@ import './globals.css';
 
 export const metadata: Metadata = {
   title: 'GymFire',
-  description: 'Your fitness social platform',
+  description: 'Sua plataforma fitness social',
 };
 
 export default function RootLayout({

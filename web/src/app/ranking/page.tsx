@@ -51,7 +51,7 @@ export default function RankingPage() {
     <div style={{ minHeight: '100vh', background: 'var(--background)' }}>
       <Navbar />
       <main style={{ maxWidth: '680px', margin: '0 auto', padding: '1.5rem 1rem' }}>
-        <h1 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '1rem' }}>Rankings</h1>
+        <h1 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '1rem' }}>Ranking</h1>
 
         {/* Tabs */}
         <div style={{
@@ -79,13 +79,13 @@ export default function RankingPage() {
                 transition: 'all 0.2s',
               }}
             >
-              {t === 'weekly' ? 'Weekly' : 'All Time'}
+              {t === 'weekly' ? 'Semanal' : 'Geral'}
             </button>
           ))}
         </div>
 
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>Loading rankings...</div>
+          <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>Carregando ranking...</div>
         ) : ranking.length === 0 ? (
           <div style={{
             textAlign: 'center',
@@ -95,7 +95,7 @@ export default function RankingPage() {
             border: '1px solid var(--border)',
             color: 'var(--text-secondary)',
           }}>
-            No rankings data available yet.
+            Sem dados de ranking ainda.
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>

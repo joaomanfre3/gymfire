@@ -23,7 +23,7 @@ export default function NewRoutinePage() {
     e.preventDefault();
     setError('');
     if (!name.trim()) {
-      setError('Routine name is required');
+      setError('O nome da rotina é obrigatório');
       return;
     }
     setLoading(true);
@@ -37,10 +37,10 @@ export default function NewRoutinePage() {
         router.push(`/routines/${data.id}`);
       } else {
         const data = await res.json();
-        setError(data.error || 'Failed to create routine');
+        setError(data.error || 'Falha ao criar rotina');
       }
     } catch {
-      setError('Connection error');
+      setError('Erro de conexão');
     } finally {
       setLoading(false);
     }
@@ -63,9 +63,9 @@ export default function NewRoutinePage() {
       <Navbar />
       <main style={{ maxWidth: '500px', margin: '0 auto', padding: '1.5rem 1rem' }}>
         <Link href="/routines" style={{ color: 'var(--text-muted)', textDecoration: 'none', fontSize: '0.85rem' }}>
-          &larr; Back to Routines
+          &larr; Voltar às Rotinas
         </Link>
-        <h1 style={{ fontSize: '1.5rem', fontWeight: 800, margin: '0.75rem 0 1.25rem' }}>New Routine</h1>
+        <h1 style={{ fontSize: '1.5rem', fontWeight: 800, margin: '0.75rem 0 1.25rem' }}>Nova Rotina</h1>
 
         <form onSubmit={handleSubmit} style={{
           background: 'var(--surface)',
@@ -78,17 +78,17 @@ export default function NewRoutinePage() {
         }}>
           <div>
             <label style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '0.35rem', fontWeight: 500 }}>
-              Routine Name
+              Nome da Rotina
             </label>
             <input type="text" value={name} onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Push Day, Leg Day" required style={inputStyle} />
+              placeholder="ex. Dia de Peito, Dia de Perna" required style={inputStyle} />
           </div>
           <div>
             <label style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '0.35rem', fontWeight: 500 }}>
-              Description (optional)
+              Descrição (opcional)
             </label>
             <textarea value={description} onChange={(e) => setDescription(e.target.value)}
-              placeholder="Describe your routine..."
+              placeholder="Descreva sua rotina..."
               rows={3}
               style={{ ...inputStyle, resize: 'vertical' }} />
           </div>
@@ -114,7 +114,7 @@ export default function NewRoutinePage() {
             fontWeight: 600,
             cursor: loading ? 'not-allowed' : 'pointer',
           }}>
-            {loading ? 'Creating...' : 'Create Routine'}
+            {loading ? 'Criando...' : 'Criar Rotina'}
           </button>
         </form>
       </main>

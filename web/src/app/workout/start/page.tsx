@@ -42,7 +42,7 @@ export default function StartWorkoutPage() {
         method: 'POST',
         body: JSON.stringify({
           routineId: routineId || undefined,
-          title: title || 'Quick Workout',
+          title: title || 'Treino Livre',
         }),
       });
       if (res.ok) {
@@ -58,7 +58,7 @@ export default function StartWorkoutPage() {
     <div style={{ minHeight: '100vh', background: 'var(--background)' }}>
       <Navbar />
       <main style={{ maxWidth: '600px', margin: '0 auto', padding: '1.5rem 1rem' }}>
-        <h1 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '1.25rem' }}>Start Workout</h1>
+        <h1 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '1.25rem' }}>Iniciar Treino</h1>
 
         {/* Quick start */}
         <button
@@ -81,24 +81,24 @@ export default function StartWorkoutPage() {
             gap: '0.5rem',
           }}
         >
-          &#x26A1; Quick Start (Empty Workout)
+          &#x26A1; Início Rápido (Treino Livre)
         </button>
 
         <h2 style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>
-          Or choose a routine:
+          Ou escolha uma rotina:
         </h2>
 
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>Loading routines...</div>
+          <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>Carregando rotinas...</div>
         ) : routines.length === 0 ? (
           <div style={{
             textAlign: 'center', padding: '2rem',
             background: 'var(--surface)', borderRadius: '1rem', border: '1px solid var(--border)',
             color: 'var(--text-secondary)',
           }}>
-            <p>No routines yet.</p>
+            <p>Nenhuma rotina ainda.</p>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-              Create routines to quickly start structured workouts.
+              Crie rotinas para iniciar treinos estruturados rapidamente.
             </p>
           </div>
         ) : (

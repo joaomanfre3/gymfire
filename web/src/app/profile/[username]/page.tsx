@@ -45,7 +45,7 @@ export default function PublicProfilePage() {
 
   async function handleFollow() {
     if (!getToken()) {
-      alert('Please login to follow users');
+      alert('Faça login para seguir usuários');
       return;
     }
     if (!profile) return;
@@ -86,14 +86,14 @@ export default function PublicProfilePage() {
       <Navbar />
       <main style={{ maxWidth: '600px', margin: '0 auto', padding: '1.5rem 1rem' }}>
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>Loading profile...</div>
+          <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>Carregando perfil...</div>
         ) : !profile ? (
           <div style={{
             textAlign: 'center', padding: '3rem',
             background: 'var(--surface)', borderRadius: '1rem', border: '1px solid var(--border)',
             color: 'var(--text-secondary)',
           }}>
-            User not found.
+            Usuário não encontrado.
           </div>
         ) : (
           <div style={{
@@ -137,7 +137,7 @@ export default function PublicProfilePage() {
                     cursor: followLoading ? 'not-allowed' : 'pointer',
                   }}
                 >
-                  {followLoading ? '...' : following ? 'Following' : 'Follow'}
+                  {followLoading ? '...' : following ? 'Seguindo' : 'Seguir'}
                 </button>
               )}
             </div>
@@ -152,7 +152,7 @@ export default function PublicProfilePage() {
                 <p style={{ color: 'var(--primary)', fontWeight: 800, fontSize: '1.3rem', margin: 0 }}>
                   {profile.totalPoints.toLocaleString()}
                 </p>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', margin: '0.15rem 0 0' }}>Points</p>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', margin: '0.15rem 0 0' }}>Pontos</p>
               </div>
               <div style={{
                 background: 'var(--surface-light)', borderRadius: '0.75rem', padding: '1rem', textAlign: 'center',
@@ -160,7 +160,7 @@ export default function PublicProfilePage() {
                 <p style={{ color: 'var(--accent)', fontWeight: 800, fontSize: '1.3rem', margin: 0 }}>
                   {profile.currentStreak}
                 </p>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', margin: '0.15rem 0 0' }}>Day Streak</p>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', margin: '0.15rem 0 0' }}>Sequência</p>
               </div>
               <div style={{
                 background: 'var(--surface-light)', borderRadius: '0.75rem', padding: '1rem', textAlign: 'center',
@@ -168,7 +168,7 @@ export default function PublicProfilePage() {
                 <p style={{ color: 'var(--success)', fontWeight: 800, fontSize: '1.3rem', margin: 0 }}>
                   {profile.workoutsCount}
                 </p>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', margin: '0.15rem 0 0' }}>Workouts</p>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', margin: '0.15rem 0 0' }}>Treinos</p>
               </div>
             </div>
 
@@ -176,12 +176,12 @@ export default function PublicProfilePage() {
               display: 'flex', justifyContent: 'center', gap: '2rem',
               color: 'var(--text-secondary)', fontSize: '0.9rem',
             }}>
-              <span><strong style={{ color: 'var(--text)' }}>{profile.followersCount}</strong> Followers</span>
-              <span><strong style={{ color: 'var(--text)' }}>{profile.followingCount}</strong> Following</span>
+              <span><strong style={{ color: 'var(--text)' }}>{profile.followersCount}</strong> Seguidores</span>
+              <span><strong style={{ color: 'var(--text)' }}>{profile.followingCount}</strong> Seguindo</span>
             </div>
 
             <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', textAlign: 'center', marginTop: '1rem' }}>
-              Member since {new Date(profile.createdAt).toLocaleDateString()}
+              Membro desde {new Date(profile.createdAt).toLocaleDateString('pt-BR')}
             </p>
           </div>
         )}

@@ -26,7 +26,7 @@ export default function LoginPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error || 'Login failed');
+        setError(data.error || 'Falha no login');
         return;
       }
 
@@ -35,7 +35,7 @@ export default function LoginPage() {
       localStorage.setItem('user_info', JSON.stringify(data.user));
       router.push('/');
     } catch {
-      setError('Connection error. Please try again.');
+      setError('Erro de conexão. Tente novamente.');
     } finally {
       setLoading(false);
     }
@@ -76,33 +76,33 @@ export default function LoginPage() {
             <h1 style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--primary)', margin: '0.25rem 0 0' }}>GymFire</h1>
           </Link>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '0.5rem' }}>
-            Welcome back! Log in to your account.
+            Bem-vindo de volta! Entre na sua conta.
           </p>
         </div>
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <div>
             <label style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '0.35rem', fontWeight: 500 }}>
-              Username or Email
+              Usuário ou Email
             </label>
             <input
               type="text"
               value={login}
               onChange={(e) => setLogin(e.target.value)}
-              placeholder="Enter your username or email"
+              placeholder="Digite seu usuário ou email"
               required
               style={inputStyle}
             />
           </div>
           <div>
             <label style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '0.35rem', fontWeight: 500 }}>
-              Password
+              Senha
             </label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your password"
+              placeholder="Digite sua senha"
               required
               style={inputStyle}
             />
@@ -137,14 +137,14 @@ export default function LoginPage() {
               marginTop: '0.5rem',
             }}
           >
-            {loading ? 'Logging in...' : 'Login'}
+            {loading ? 'Entrando...' : 'Entrar'}
           </button>
         </form>
 
         <p style={{ textAlign: 'center', marginTop: '1.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-          Don&apos;t have an account?{' '}
+          Não tem conta?{' '}
           <Link href="/register" style={{ color: 'var(--primary)', textDecoration: 'none', fontWeight: 600 }}>
-            Register
+            Criar conta
           </Link>
         </p>
       </div>

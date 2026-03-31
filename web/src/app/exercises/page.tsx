@@ -13,6 +13,13 @@ interface Exercise {
   difficulty?: string;
 }
 
+const muscleGroupLabels: Record<string, string> = {
+  'All': 'Todos', 'Chest': 'Peito', 'Back': 'Costas', 'Shoulders': 'Ombros',
+  'Biceps': 'Bíceps', 'Triceps': 'Tríceps', 'Forearms': 'Antebraços',
+  'Core': 'Core', 'Quads': 'Quadríceps', 'Hamstrings': 'Posteriores',
+  'Glutes': 'Glúteos', 'Calves': 'Panturrilhas', 'Full Body': 'Corpo Inteiro',
+};
+
 const muscleGroups = [
   'All', 'Chest', 'Back', 'Shoulders', 'Biceps', 'Triceps', 'Forearms',
   'Core', 'Quads', 'Hamstrings', 'Glutes', 'Calves', 'Full Body',
@@ -56,7 +63,7 @@ export default function ExercisesPage() {
     <div style={{ minHeight: '100vh', background: 'var(--background)' }}>
       <Navbar />
       <main style={{ maxWidth: '900px', margin: '0 auto', padding: '1.5rem 1rem' }}>
-        <h1 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '1rem' }}>Exercise Catalog</h1>
+        <h1 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '1rem' }}>Biblioteca de Exercícios</h1>
 
         {/* Search */}
         <form onSubmit={handleSearch} style={{ marginBottom: '1rem' }}>
@@ -64,7 +71,7 @@ export default function ExercisesPage() {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search exercises..."
+            placeholder="Buscar exercícios..."
             style={{
               width: '100%',
               padding: '0.75rem 1rem',
@@ -96,12 +103,12 @@ export default function ExercisesPage() {
                 cursor: 'pointer',
                 transition: 'all 0.2s',
               }}
-            >{mg}</button>
+            >{muscleGroupLabels[mg] || mg}</button>
           ))}
         </div>
 
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>Loading exercises...</div>
+          <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>Carregando exercícios...</div>
         ) : filtered.length === 0 ? (
           <div style={{
             textAlign: 'center',
@@ -111,7 +118,7 @@ export default function ExercisesPage() {
             border: '1px solid var(--border)',
             color: 'var(--text-secondary)',
           }}>
-            No exercises found. Try a different search or filter.
+            Nenhum exercício encontrado. Tente uma busca ou filtro diferente.
           </div>
         ) : (
           <div style={{

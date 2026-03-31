@@ -124,7 +124,7 @@ export default function ActiveWorkoutPage() {
   }
 
   async function handleFinish() {
-    if (!confirm('Finish this workout?')) return;
+    if (!confirm('Finalizar este treino?')) return;
     setFinishing(true);
     try {
       const res = await apiFetch(`/api/workouts/${id}/finish`, { method: 'POST' });
@@ -164,9 +164,9 @@ export default function ActiveWorkoutPage() {
       <Navbar />
       <main style={{ maxWidth: '680px', margin: '0 auto', padding: '1.5rem 1rem' }}>
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>Loading workout...</div>
+          <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>Carregando treino...</div>
         ) : !workout ? (
-          <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)' }}>Workout not found.</div>
+          <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)' }}>Treino não encontrado.</div>
         ) : finished ? (
           /* Summary */
           <div style={{
@@ -177,19 +177,19 @@ export default function ActiveWorkoutPage() {
             textAlign: 'center',
           }}>
             <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>&#x1F3C6;</div>
-            <h1 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '0.25rem' }}>Workout Complete!</h1>
+            <h1 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '0.25rem' }}>Treino Finalizado!</h1>
             <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
               {workout.title || 'Workout'}
             </p>
             <div style={{ display: 'flex', justifyContent: 'center', gap: '1.5rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
               {workout.durationSecs != null && (
                 <div>
-                  <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Duration</p>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Duração</p>
                   <p style={{ fontWeight: 700, fontSize: '1.2rem', color: 'var(--accent)' }}>{formatTimer(workout.durationSecs)}</p>
                 </div>
               )}
               <div>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Sets</p>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Séries</p>
                 <p style={{ fontWeight: 700, fontSize: '1.2rem' }}>{workout.totalSets ?? workout.sets.length}</p>
               </div>
               {workout.totalVolume != null && workout.totalVolume > 0 && (
@@ -200,14 +200,14 @@ export default function ActiveWorkoutPage() {
               )}
               {workout.pointsEarned != null && (
                 <div>
-                  <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Points</p>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Pontos</p>
                   <p style={{ fontWeight: 700, fontSize: '1.2rem', color: 'var(--success)' }}>+{workout.pointsEarned}</p>
                 </div>
               )}
             </div>
             {workout.personalRecords && workout.personalRecords.length > 0 && (
               <div style={{ marginBottom: '1.5rem' }}>
-                <p style={{ fontWeight: 600, marginBottom: '0.5rem', color: 'var(--warning, #FACC15)' }}>Personal Records!</p>
+                <p style={{ fontWeight: 600, marginBottom: '0.5rem', color: 'var(--warning, #FACC15)' }}>Recordes Pessoais!</p>
                 {workout.personalRecords.map((pr, i) => (
                   <p key={i} style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
                     {pr.exercise.name}: {pr.type === 'MAX_WEIGHT' ? `${pr.value} kg` : `${pr.value} reps`}
@@ -222,7 +222,7 @@ export default function ActiveWorkoutPage() {
               padding: '0.65rem 1.5rem',
               borderRadius: '0.5rem',
               fontWeight: 600,
-            }}>Back to Feed</Link>
+            }}>Voltar ao Feed</Link>
           </div>
         ) : (
           /* Active workout */
@@ -263,8 +263,8 @@ export default function ActiveWorkoutPage() {
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                   <thead>
                     <tr style={{ color: 'var(--text-muted)' }}>
-                      <th style={{ textAlign: 'left', padding: '0.25rem 0', fontWeight: 500 }}>Set</th>
-                      <th style={{ textAlign: 'center', padding: '0.25rem 0', fontWeight: 500 }}>Weight</th>
+                      <th style={{ textAlign: 'left', padding: '0.25rem 0', fontWeight: 500 }}>Série</th>
+                      <th style={{ textAlign: 'center', padding: '0.25rem 0', fontWeight: 500 }}>Peso</th>
                       <th style={{ textAlign: 'center', padding: '0.25rem 0', fontWeight: 500 }}>Reps</th>
                       <th style={{ textAlign: 'center', padding: '0.25rem 0', fontWeight: 500 }}></th>
                     </tr>
@@ -308,17 +308,17 @@ export default function ActiveWorkoutPage() {
               padding: '1rem',
               marginBottom: '1rem',
             }}>
-              <p style={{ fontWeight: 600, marginBottom: '0.65rem', fontSize: '0.95rem' }}>Log Set</p>
+              <p style={{ fontWeight: 600, marginBottom: '0.65rem', fontSize: '0.95rem' }}>Registrar Série</p>
               <select value={selExercise} onChange={(e) => setSelExercise(e.target.value)}
                 required style={{ ...inputStyle, marginBottom: '0.5rem' }}>
-                <option value="">Select exercise...</option>
+                <option value="">Selecione um exercício...</option>
                 {exercises.map(ex => (
                   <option key={ex.id} value={ex.id}>{ex.name}</option>
                 ))}
               </select>
               <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.65rem' }}>
                 <div style={{ flex: 1 }}>
-                  <label style={{ display: 'block', color: 'var(--text-muted)', fontSize: '0.75rem', marginBottom: '0.2rem' }}>Weight (kg)</label>
+                  <label style={{ display: 'block', color: 'var(--text-muted)', fontSize: '0.75rem', marginBottom: '0.2rem' }}>Peso (kg)</label>
                   <input type="number" step="0.5" min="0" value={newWeight}
                     onChange={(e) => setNewWeight(e.target.value)} style={inputStyle}
                     placeholder="0" />
@@ -340,7 +340,7 @@ export default function ActiveWorkoutPage() {
                 fontWeight: 600,
                 cursor: addingSet ? 'not-allowed' : 'pointer',
               }}>
-                {addingSet ? 'Adding...' : '+ Add Set'}
+                {addingSet ? 'Adicionando...' : '+ Adicionar Série'}
               </button>
             </form>
 
@@ -360,7 +360,7 @@ export default function ActiveWorkoutPage() {
                 cursor: finishing ? 'not-allowed' : 'pointer',
               }}
             >
-              {finishing ? 'Finishing...' : 'Finish Workout'}
+              {finishing ? 'Finalizando...' : 'Finalizar Treino'}
             </button>
           </>
         )}

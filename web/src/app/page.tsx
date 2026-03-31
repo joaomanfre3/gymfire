@@ -35,13 +35,13 @@ interface Post {
 
 function timeAgo(date: string): string {
   const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
-  if (seconds < 60) return 'just now';
+  if (seconds < 60) return 'agora';
   const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
+  if (minutes < 60) return `${minutes} min atrás`;
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
+  if (hours < 24) return `${hours}h atrás`;
   const days = Math.floor(hours / 24);
-  if (days < 7) return `${days}d ago`;
+  if (days < 7) return `${days}d atrás`;
   return new Date(date).toLocaleDateString();
 }
 
@@ -86,7 +86,7 @@ export default function FeedPage() {
 
   async function handleLike(postId: string) {
     if (!getToken()) {
-      alert('Please login to like posts');
+      alert('Faça login para curtir posts');
       return;
     }
     try {
@@ -114,10 +114,10 @@ export default function FeedPage() {
             textAlign: 'center',
           }}>
             <h1 style={{ fontSize: '1.8rem', fontWeight: 800, marginBottom: '0.5rem' }}>
-              Welcome to <span style={{ color: 'var(--primary)' }}>GymFire</span>
+              Bem-vindo ao <span style={{ color: 'var(--primary)' }}>GymFire</span>
             </h1>
             <p style={{ color: 'var(--text-secondary)', marginBottom: '1.25rem', fontSize: '1rem' }}>
-              Track workouts, compete with friends, and crush your fitness goals.
+              Registre treinos, compita com amigos e conquiste seus objetivos fitness.
             </p>
             <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
               <Link href="/register" style={{
@@ -128,7 +128,7 @@ export default function FeedPage() {
                 borderRadius: '0.5rem',
                 fontWeight: 600,
                 fontSize: '0.95rem',
-              }}>Get Started</Link>
+              }}>Começar</Link>
               <Link href="/login" style={{
                 textDecoration: 'none',
                 color: 'var(--text)',
@@ -137,19 +137,19 @@ export default function FeedPage() {
                 borderRadius: '0.5rem',
                 fontWeight: 500,
                 fontSize: '0.95rem',
-              }}>Login</Link>
+              }}>Entrar</Link>
             </div>
           </div>
         )}
 
         <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '1rem' }}>
-          {loggedIn ? 'Your Feed' : 'Recent Activity'}
+          {loggedIn ? 'Seu Feed' : 'Atividade Recente'}
         </h2>
 
         {loading ? (
           <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
             <div style={{ fontSize: '2rem', marginBottom: '0.5rem', animation: 'pulse 1.5s infinite' }}>&#x1F525;</div>
-            Loading...
+            Carregando...
           </div>
         ) : posts.length === 0 ? (
           <div style={{
@@ -161,7 +161,7 @@ export default function FeedPage() {
           }}>
             <p style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>&#x1F4AA;</p>
             <p style={{ color: 'var(--text-secondary)' }}>
-              {loggedIn ? 'No posts yet. Start a workout to share your progress!' : 'No public posts yet. Login to see your personalized feed.'}
+              {loggedIn ? 'Nenhum post ainda. Inicie um treino para compartilhar seu progresso!' : 'Nenhum post público ainda. Entre para ver seu feed personalizado.'}
             </p>
           </div>
         ) : (
@@ -245,7 +245,7 @@ export default function FeedPage() {
                         )}
                         {post.workout.totalSets != null && (
                           <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-                            {post.workout.totalSets} sets
+                            {post.workout.totalSets} séries
                           </span>
                         )}
                       </div>
@@ -263,7 +263,7 @@ export default function FeedPage() {
                           ))}
                           {exerciseNames.length > 5 && (
                             <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', padding: '0.2rem 0.4rem' }}>
-                              +{exerciseNames.length - 5} more
+                              +{exerciseNames.length - 5} mais
                             </span>
                           )}
                         </div>

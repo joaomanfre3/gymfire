@@ -79,18 +79,18 @@ export default function Navbar() {
             gap: '0.25rem',
           }} className="desktop-nav">
             <Link href="/" style={linkStyle('/')}>Feed</Link>
-            <Link href="/exercises" style={linkStyle('/exercises')}>Exercises</Link>
+            <Link href="/exercises" style={linkStyle('/exercises')}>Exercícios</Link>
             <Link href="/ranking" style={linkStyle('/ranking')}>Ranking</Link>
             {loggedIn && (
               <>
-                <Link href="/routines" style={linkStyle('/routines')}>Routines</Link>
+                <Link href="/routines" style={linkStyle('/routines')}>Rotinas</Link>
                 <Link href="/workout/start" style={{
                   ...linkStyle('/workout/start'),
                   background: 'var(--primary)',
                   color: '#fff',
                   fontWeight: 600,
                   padding: '0.5rem 1rem',
-                }}>Start Workout</Link>
+                }}>Iniciar Treino</Link>
               </>
             )}
           </nav>
@@ -130,7 +130,7 @@ export default function Navbar() {
                     fontSize: '0.8rem',
                   }}
                 >
-                  Logout
+                  Sair
                 </button>
               </div>
             ) : (
@@ -144,7 +144,7 @@ export default function Navbar() {
                   fontSize: '0.85rem',
                   fontWeight: 500,
                 }}>
-                  Login
+                  Entrar
                 </Link>
                 <Link href="/register" style={{
                   textDecoration: 'none',
@@ -155,7 +155,7 @@ export default function Navbar() {
                   fontSize: '0.85rem',
                   fontWeight: 600,
                 }}>
-                  Register
+                  Criar Conta
                 </Link>
               </div>
             )}
@@ -190,11 +190,11 @@ export default function Navbar() {
             gap: '0.25rem',
           }}>
             <Link href="/" onClick={() => setMenuOpen(false)} style={linkStyle('/')}>Feed</Link>
-            <Link href="/exercises" onClick={() => setMenuOpen(false)} style={linkStyle('/exercises')}>Exercises</Link>
+            <Link href="/exercises" onClick={() => setMenuOpen(false)} style={linkStyle('/exercises')}>Exercícios</Link>
             <Link href="/ranking" onClick={() => setMenuOpen(false)} style={linkStyle('/ranking')}>Ranking</Link>
             {loggedIn && (
               <>
-                <Link href="/routines" onClick={() => setMenuOpen(false)} style={linkStyle('/routines')}>Routines</Link>
+                <Link href="/routines" onClick={() => setMenuOpen(false)} style={linkStyle('/routines')}>Rotinas</Link>
                 <Link href="/workout/start" onClick={() => setMenuOpen(false)} style={{
                   ...linkStyle('/workout/start'),
                   background: 'var(--primary)',
@@ -202,13 +202,13 @@ export default function Navbar() {
                   fontWeight: 600,
                   textAlign: 'center' as const,
                   marginTop: '0.25rem',
-                }}>Start Workout</Link>
+                }}>Iniciar Treino</Link>
               </>
             )}
             <div style={{ borderTop: '1px solid var(--border)', marginTop: '0.5rem', paddingTop: '0.5rem' }}>
               {loggedIn ? (
                 <>
-                  <Link href="/profile" onClick={() => setMenuOpen(false)} style={linkStyle('/profile')}>My Profile</Link>
+                  <Link href="/profile" onClick={() => setMenuOpen(false)} style={linkStyle('/profile')}>Meu Perfil</Link>
                   <button onClick={() => { handleLogout(); setMenuOpen(false); }} style={{
                     background: 'none',
                     border: 'none',
@@ -218,7 +218,7 @@ export default function Navbar() {
                     padding: '0.5rem 0.75rem',
                     width: '100%',
                     textAlign: 'left',
-                  }}>Logout</button>
+                  }}>Sair</button>
                 </>
               ) : (
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -231,7 +231,7 @@ export default function Navbar() {
                     borderRadius: '0.5rem',
                     textAlign: 'center',
                     fontSize: '0.85rem',
-                  }}>Login</Link>
+                  }}>Entrar</Link>
                   <Link href="/register" onClick={() => setMenuOpen(false)} style={{
                     flex: 1,
                     textDecoration: 'none',
@@ -242,7 +242,7 @@ export default function Navbar() {
                     textAlign: 'center',
                     fontSize: '0.85rem',
                     fontWeight: 600,
-                  }}>Register</Link>
+                  }}>Criar Conta</Link>
                 </div>
               )}
             </div>

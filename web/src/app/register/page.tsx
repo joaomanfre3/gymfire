@@ -19,15 +19,15 @@ export default function RegisterPage() {
     setError('');
 
     if (password !== confirmPassword) {
-      setError('Passwords do not match');
+      setError('As senhas não coincidem');
       return;
     }
     if (password.length < 6) {
-      setError('Password must be at least 6 characters');
+      setError('A senha deve ter pelo menos 6 caracteres');
       return;
     }
     if (username.length < 3) {
-      setError('Username must be at least 3 characters');
+      setError('O usuário deve ter pelo menos 3 caracteres');
       return;
     }
 
@@ -42,13 +42,13 @@ export default function RegisterPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error || 'Registration failed');
+        setError(data.error || 'Falha no cadastro');
         return;
       }
 
       router.push('/login');
     } catch {
-      setError('Connection error. Please try again.');
+      setError('Erro de conexão. Tente novamente.');
     } finally {
       setLoading(false);
     }
@@ -89,17 +89,17 @@ export default function RegisterPage() {
             <h1 style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--primary)', margin: '0.25rem 0 0' }}>GymFire</h1>
           </Link>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '0.5rem' }}>
-            Create your account and start training.
+            Crie sua conta e comece a treinar.
           </p>
         </div>
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
           <div>
             <label style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '0.35rem', fontWeight: 500 }}>
-              Display Name
+              Nome de Exibição
             </label>
             <input type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)}
-              placeholder="John Doe" required style={inputStyle} />
+              placeholder="João Silva" required style={inputStyle} />
           </div>
           <div>
             <label style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '0.35rem', fontWeight: 500 }}>
@@ -110,24 +110,24 @@ export default function RegisterPage() {
           </div>
           <div>
             <label style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '0.35rem', fontWeight: 500 }}>
-              Username
+              Usuário
             </label>
             <input type="text" value={username} onChange={(e) => setUsername(e.target.value)}
-              placeholder="johndoe" required minLength={3} style={inputStyle} />
+              placeholder="joaosilva" required minLength={3} style={inputStyle} />
           </div>
           <div>
             <label style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '0.35rem', fontWeight: 500 }}>
-              Password
+              Senha
             </label>
             <input type="password" value={password} onChange={(e) => setPassword(e.target.value)}
-              placeholder="Min. 6 characters" required minLength={6} style={inputStyle} />
+              placeholder="Mínimo 6 caracteres" required minLength={6} style={inputStyle} />
           </div>
           <div>
             <label style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '0.35rem', fontWeight: 500 }}>
-              Confirm Password
+              Confirmar Senha
             </label>
             <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder="Repeat your password" required style={inputStyle} />
+              placeholder="Repita sua senha" required style={inputStyle} />
           </div>
 
           {error && (
@@ -155,14 +155,14 @@ export default function RegisterPage() {
             cursor: loading ? 'not-allowed' : 'pointer',
             marginTop: '0.25rem',
           }}>
-            {loading ? 'Creating account...' : 'Create Account'}
+            {loading ? 'Criando conta...' : 'Criar Conta'}
           </button>
         </form>
 
         <p style={{ textAlign: 'center', marginTop: '1.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-          Already have an account?{' '}
+          Já tem conta?{' '}
           <Link href="/login" style={{ color: 'var(--primary)', textDecoration: 'none', fontWeight: 600 }}>
-            Login
+            Entrar
           </Link>
         </p>
       </div>

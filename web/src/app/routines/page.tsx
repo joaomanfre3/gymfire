@@ -47,7 +47,7 @@ export default function RoutinesPage() {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm('Are you sure you want to delete this routine?')) return;
+    if (!confirm('Tem certeza que deseja excluir esta rotina?')) return;
     try {
       const res = await apiFetch(`/api/routines/${id}`, { method: 'DELETE' });
       if (res.ok) {
@@ -61,7 +61,7 @@ export default function RoutinesPage() {
       <Navbar />
       <main style={{ maxWidth: '700px', margin: '0 auto', padding: '1.5rem 1rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 800 }}>My Routines</h1>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 800 }}>Minhas Rotinas</h1>
           {loggedIn && (
             <Link href="/routines/new" style={{
               textDecoration: 'none',
@@ -71,7 +71,7 @@ export default function RoutinesPage() {
               borderRadius: '0.5rem',
               fontWeight: 600,
               fontSize: '0.9rem',
-            }}>+ New Routine</Link>
+            }}>+ Nova Rotina</Link>
           )}
         </div>
 
@@ -85,7 +85,7 @@ export default function RoutinesPage() {
           }}>
             <p style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>&#x1F4CB;</p>
             <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>
-              Login to manage your workout routines.
+              Entre para gerenciar suas rotinas de treino.
             </p>
             <Link href="/login" style={{
               textDecoration: 'none',
@@ -94,10 +94,10 @@ export default function RoutinesPage() {
               padding: '0.6rem 1.5rem',
               borderRadius: '0.5rem',
               fontWeight: 600,
-            }}>Login</Link>
+            }}>Entrar</Link>
           </div>
         ) : loading ? (
-          <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>Loading routines...</div>
+          <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>Carregando rotinas...</div>
         ) : routines.length === 0 ? (
           <div style={{
             textAlign: 'center',
@@ -108,7 +108,7 @@ export default function RoutinesPage() {
           }}>
             <p style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>&#x1F4CB;</p>
             <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>
-              No routines yet. Create your first routine to get started!
+              Nenhuma rotina ainda. Crie sua primeira rotina para começar!
             </p>
             <Link href="/routines/new" style={{
               textDecoration: 'none',
@@ -117,7 +117,7 @@ export default function RoutinesPage() {
               padding: '0.6rem 1.5rem',
               borderRadius: '0.5rem',
               fontWeight: 600,
-            }}>Create Routine</Link>
+            }}>Criar Rotina</Link>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
