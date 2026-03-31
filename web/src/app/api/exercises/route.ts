@@ -5,9 +5,6 @@ import { getAuthUser } from '@/lib/auth';
 export async function GET(request: Request) {
   try {
     const user = await getAuthUser(request);
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
 
     const { searchParams } = new URL(request.url);
     const muscleGroup = searchParams.get('muscleGroup');
@@ -15,9 +12,13 @@ export async function GET(request: Request) {
     const category = searchParams.get('category');
     const search = searchParams.get('search');
 
-    const where: Record<string, unknown> = {
-      OR: [{ isPublic: true }, { createdById: user.id }],
-    };
+    const where: Record<string, unknown> = {};
+
+    if (user) {
+      where.OR = [{ isPublic: true }, { createdById: user.id }];
+    } else {
+      where.isPublic = true;
+    }
 
     if (muscleGroup) {
       where.muscleGroup = muscleGroup;

@@ -1,5 +1,21 @@
+export function getToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem('access_token');
+}
+
+export function getUser(): { id: string; username: string; displayName: string; email: string } | null {
+  if (typeof window === 'undefined') return null;
+  const stored = localStorage.getItem('user_info');
+  if (!stored) return null;
+  try {
+    return JSON.parse(stored);
+  } catch {
+    return null;
+  }
+}
+
 export async function apiFetch(url: string, options?: RequestInit) {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+  const token = getToken();
   const res = await fetch(url, {
     ...options,
     headers: {
@@ -8,10 +24,5 @@ export async function apiFetch(url: string, options?: RequestInit) {
       ...options?.headers,
     },
   });
-  if (res.status === 401 && typeof window !== 'undefined') {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    window.location.href = '/login';
-  }
   return res;
 }

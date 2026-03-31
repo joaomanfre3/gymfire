@@ -1,36 +1,45 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getAuthUser } from '@/lib/auth';
+import { Prisma } from '@prisma/client';
 
 export async function GET(request: Request) {
   try {
     const user = await getAuthUser(request);
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
 
     const { searchParams } = new URL(request.url);
     const skip = parseInt(searchParams.get('skip') || '0', 10);
     const limit = Math.min(parseInt(searchParams.get('limit') || '20', 10), 50);
 
-    // Get IDs of users the current user follows
-    const following = await prisma.follow.findMany({
-      where: { followerId: user.id },
-      select: { followingId: true },
-    });
+    let whereClause: Prisma.PostWhereInput;
 
-    const followingIds = following.map((f) => f.followingId);
-    const feedUserIds = [user.id, ...followingIds];
+    if (user) {
+      const following = await prisma.follow.findMany({
+        where: { followerId: user.id },
+        select: { followingId: true },
+      });
+
+      const followingIds = following.map((f) => f.followingId);
+      const feedUserIds = [user.id, ...followingIds];
+
+      whereClause = {
+        AND: [
+          { userId: { in: feedUserIds } },
+          {
+            OR: [
+              { visibility: 'PUBLIC' },
+              { visibility: 'FOLLOWERS' },
+              { userId: user.id },
+            ],
+          },
+        ],
+      };
+    } else {
+      whereClause = { visibility: 'PUBLIC' };
+    }
 
     const posts = await prisma.post.findMany({
-      where: {
-        userId: { in: feedUserIds },
-        OR: [
-          { visibility: 'PUBLIC' },
-          { visibility: 'FOLLOWERS' },
-          { userId: user.id },
-        ],
-      },
+      where: whereClause,
       include: {
         user: {
           select: {

@@ -3,113 +3,261 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-
-const navItems = [
-  { href: '/feed', label: 'Feed', icon: '📰' },
-  { href: '/routines', label: 'Routines', icon: '📋' },
-  { href: '/exercises', label: 'Exercises', icon: '💪' },
-  { href: '/ranking', label: 'Ranking', icon: '🏆' },
-  { href: '/profile', label: 'Profile', icon: '👤' },
-];
+import { getToken, getUser } from '@/lib/api';
 
 export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
   const [user, setUser] = useState<{ displayName?: string; username?: string } | null>(null);
+  const [loggedIn, setLoggedIn] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
-    const stored = localStorage.getItem('user_info');
-    if (stored) {
-      try { setUser(JSON.parse(stored)); } catch { /* ignore */ }
-    }
-  }, []);
+    const token = getToken();
+    const u = getUser();
+    setLoggedIn(!!token);
+    setUser(u);
+  }, [pathname]);
 
   const handleLogout = () => {
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
     localStorage.removeItem('user_info');
-    router.push('/login');
+    setLoggedIn(false);
+    setUser(null);
+    router.push('/');
   };
 
-  const isActive = (href: string) => pathname === href || pathname.startsWith(href + '/');
+  const isActive = (href: string) => pathname === href;
+
+  const linkStyle = (href: string): React.CSSProperties => ({
+    color: isActive(href) ? 'var(--primary)' : 'var(--text-secondary)',
+    textDecoration: 'none',
+    fontSize: '0.9rem',
+    fontWeight: isActive(href) ? 700 : 500,
+    padding: '0.5rem 0.75rem',
+    borderRadius: '0.5rem',
+    transition: 'color 0.2s',
+  });
 
   return (
     <>
-      {/* Desktop sidebar */}
-      <aside className="hidden md:flex fixed left-0 top-0 bottom-0 w-60 flex-col z-50"
-        style={{ background: 'var(--surface)', borderRight: '1px solid var(--border)' }}>
-        <div className="p-6 pb-4">
-          <Link href="/feed" className="text-2xl font-bold flex items-center gap-2" style={{ color: 'var(--primary)' }}>
-            🔥 GymFire
+      <header style={{
+        position: 'sticky',
+        top: 0,
+        zIndex: 100,
+        background: 'var(--surface)',
+        borderBottom: '1px solid var(--border)',
+        backdropFilter: 'blur(12px)',
+      }}>
+        <div style={{
+          maxWidth: '1200px',
+          margin: '0 auto',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '0 1.25rem',
+          height: '60px',
+        }}>
+          {/* Logo */}
+          <Link href="/" style={{
+            textDecoration: 'none',
+            fontSize: '1.4rem',
+            fontWeight: 800,
+            color: 'var(--primary)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.4rem',
+          }}>
+            <span role="img" aria-label="fire">&#x1F525;</span> GymFire
           </Link>
-        </div>
-        <nav className="flex-1 px-3 space-y-1">
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200"
-              style={{
-                background: isActive(item.href) ? 'rgba(255, 107, 53, 0.12)' : 'transparent',
-                color: isActive(item.href) ? 'var(--primary)' : 'var(--text-secondary)',
-              }}
-            >
-              <span className="text-lg">{item.icon}</span>
-              {item.label}
-            </Link>
-          ))}
-          <Link
-            href="/workout/start"
-            className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all duration-200 mt-4"
-            style={{ background: 'var(--primary)', color: '#fff' }}
-          >
-            <span className="text-lg">⚡</span>
-            Start Workout
-          </Link>
-        </nav>
-        <div className="p-4" style={{ borderTop: '1px solid var(--border)' }}>
-          {user && (
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white"
-                style={{ background: 'var(--primary)' }}>
-                {(user.displayName || user.username || '?')[0].toUpperCase()}
+
+          {/* Desktop nav */}
+          <nav style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.25rem',
+          }} className="desktop-nav">
+            <Link href="/" style={linkStyle('/')}>Feed</Link>
+            <Link href="/exercises" style={linkStyle('/exercises')}>Exercises</Link>
+            <Link href="/ranking" style={linkStyle('/ranking')}>Ranking</Link>
+            {loggedIn && (
+              <>
+                <Link href="/routines" style={linkStyle('/routines')}>Routines</Link>
+                <Link href="/workout/start" style={{
+                  ...linkStyle('/workout/start'),
+                  background: 'var(--primary)',
+                  color: '#fff',
+                  fontWeight: 600,
+                  padding: '0.5rem 1rem',
+                }}>Start Workout</Link>
+              </>
+            )}
+          </nav>
+
+          {/* Desktop auth area */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }} className="desktop-nav">
+            {loggedIn && user ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                <Link href="/profile" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <div style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '50%',
+                    background: 'var(--primary)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#fff',
+                    fontWeight: 700,
+                    fontSize: '0.85rem',
+                  }}>
+                    {(user.displayName || user.username || '?')[0].toUpperCase()}
+                  </div>
+                  <span style={{ color: 'var(--text)', fontSize: '0.9rem', fontWeight: 500 }}>
+                    {user.displayName || user.username}
+                  </span>
+                </Link>
+                <button
+                  onClick={handleLogout}
+                  style={{
+                    background: 'none',
+                    border: '1px solid var(--border)',
+                    color: 'var(--text-muted)',
+                    padding: '0.4rem 0.75rem',
+                    borderRadius: '0.5rem',
+                    cursor: 'pointer',
+                    fontSize: '0.8rem',
+                  }}
+                >
+                  Logout
+                </button>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate" style={{ color: 'var(--text)' }}>
-                  {user.displayName || user.username}
-                </p>
-                {user.username && (
-                  <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>@{user.username}</p>
-                )}
+            ) : (
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <Link href="/login" style={{
+                  textDecoration: 'none',
+                  color: 'var(--text)',
+                  border: '1px solid var(--border)',
+                  padding: '0.45rem 1rem',
+                  borderRadius: '0.5rem',
+                  fontSize: '0.85rem',
+                  fontWeight: 500,
+                }}>
+                  Login
+                </Link>
+                <Link href="/register" style={{
+                  textDecoration: 'none',
+                  color: '#fff',
+                  background: 'var(--primary)',
+                  padding: '0.45rem 1rem',
+                  borderRadius: '0.5rem',
+                  fontSize: '0.85rem',
+                  fontWeight: 600,
+                }}>
+                  Register
+                </Link>
               </div>
-            </div>
-          )}
-          <button onClick={handleLogout}
-            className="w-full text-left px-3 py-2 rounded-lg text-sm transition-colors"
-            style={{ color: 'var(--text-muted)' }}
-            onMouseEnter={(e) => e.currentTarget.style.color = 'var(--error)'}
-            onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
+            )}
+          </div>
+
+          {/* Mobile hamburger */}
+          <button
+            className="mobile-menu-btn"
+            onClick={() => setMenuOpen(!menuOpen)}
+            style={{
+              display: 'none',
+              background: 'none',
+              border: 'none',
+              color: 'var(--text)',
+              fontSize: '1.5rem',
+              cursor: 'pointer',
+              padding: '0.25rem',
+            }}
           >
-            Logout
+            {menuOpen ? '\u2715' : '\u2630'}
           </button>
         </div>
-      </aside>
 
-      {/* Mobile bottom bar */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 flex justify-around items-center py-2 px-1"
-        style={{ background: 'var(--surface)', borderTop: '1px solid var(--border)' }}>
-        {navItems.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className="flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg text-xs transition-colors"
-            style={{ color: isActive(item.href) ? 'var(--primary)' : 'var(--text-muted)' }}
-          >
-            <span className="text-xl">{item.icon}</span>
-            <span>{item.label}</span>
-          </Link>
-        ))}
-      </nav>
+        {/* Mobile dropdown */}
+        {menuOpen && (
+          <div className="mobile-dropdown" style={{
+            background: 'var(--surface)',
+            borderTop: '1px solid var(--border)',
+            padding: '0.75rem 1.25rem 1rem',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.25rem',
+          }}>
+            <Link href="/" onClick={() => setMenuOpen(false)} style={linkStyle('/')}>Feed</Link>
+            <Link href="/exercises" onClick={() => setMenuOpen(false)} style={linkStyle('/exercises')}>Exercises</Link>
+            <Link href="/ranking" onClick={() => setMenuOpen(false)} style={linkStyle('/ranking')}>Ranking</Link>
+            {loggedIn && (
+              <>
+                <Link href="/routines" onClick={() => setMenuOpen(false)} style={linkStyle('/routines')}>Routines</Link>
+                <Link href="/workout/start" onClick={() => setMenuOpen(false)} style={{
+                  ...linkStyle('/workout/start'),
+                  background: 'var(--primary)',
+                  color: '#fff',
+                  fontWeight: 600,
+                  textAlign: 'center' as const,
+                  marginTop: '0.25rem',
+                }}>Start Workout</Link>
+              </>
+            )}
+            <div style={{ borderTop: '1px solid var(--border)', marginTop: '0.5rem', paddingTop: '0.5rem' }}>
+              {loggedIn ? (
+                <>
+                  <Link href="/profile" onClick={() => setMenuOpen(false)} style={linkStyle('/profile')}>My Profile</Link>
+                  <button onClick={() => { handleLogout(); setMenuOpen(false); }} style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--error)',
+                    fontSize: '0.9rem',
+                    cursor: 'pointer',
+                    padding: '0.5rem 0.75rem',
+                    width: '100%',
+                    textAlign: 'left',
+                  }}>Logout</button>
+                </>
+              ) : (
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <Link href="/login" onClick={() => setMenuOpen(false)} style={{
+                    flex: 1,
+                    textDecoration: 'none',
+                    color: 'var(--text)',
+                    border: '1px solid var(--border)',
+                    padding: '0.5rem',
+                    borderRadius: '0.5rem',
+                    textAlign: 'center',
+                    fontSize: '0.85rem',
+                  }}>Login</Link>
+                  <Link href="/register" onClick={() => setMenuOpen(false)} style={{
+                    flex: 1,
+                    textDecoration: 'none',
+                    color: '#fff',
+                    background: 'var(--primary)',
+                    padding: '0.5rem',
+                    borderRadius: '0.5rem',
+                    textAlign: 'center',
+                    fontSize: '0.85rem',
+                    fontWeight: 600,
+                  }}>Register</Link>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </header>
+
+      <style>{`
+        .desktop-nav { display: flex !important; }
+        .mobile-menu-btn { display: none !important; }
+        @media (max-width: 768px) {
+          .desktop-nav { display: none !important; }
+          .mobile-menu-btn { display: block !important; }
+        }
+      `}</style>
     </>
   );
 }
