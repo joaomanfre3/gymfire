@@ -61,78 +61,101 @@ export default function RoutinesPage() {
       <Navbar />
       <main style={{ maxWidth: '700px', margin: '0 auto', padding: '1.5rem 1rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 800 }}>Minhas Rotinas</h1>
+          <h1 style={{
+            fontSize: '1.4rem',
+            fontWeight: 900,
+            fontFamily: "'Orbitron', sans-serif",
+            letterSpacing: '0.05em',
+            textTransform: 'uppercase',
+          }}>
+            <span className="gradient-text" style={{ fontFamily: "'Orbitron', sans-serif" }}>Rotinas</span>
+          </h1>
           {loggedIn && (
-            <Link href="/routines/new" style={{
+            <Link href="/routines/new" className="btn-glow" style={{
               textDecoration: 'none',
-              background: 'var(--primary)',
+              background: 'linear-gradient(135deg, var(--primary), var(--primary-dark))',
               color: '#fff',
               padding: '0.55rem 1.1rem',
-              borderRadius: '0.5rem',
-              fontWeight: 600,
-              fontSize: '0.9rem',
+              borderRadius: 'var(--radius-sm)',
+              fontWeight: 700,
+              fontSize: '0.8rem',
+              letterSpacing: '0.05em',
+              textTransform: 'uppercase',
+              boxShadow: '0 0 15px rgba(255, 107, 53, 0.15)',
             }}>+ Nova Rotina</Link>
           )}
         </div>
 
         {!loggedIn ? (
-          <div style={{
+          <div className="animate-in" style={{
             textAlign: 'center',
             padding: '3rem',
             background: 'var(--surface)',
-            borderRadius: '1rem',
+            borderRadius: 'var(--radius-lg)',
             border: '1px solid var(--border)',
+            boxShadow: 'var(--shadow-card)',
           }}>
             <p style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>&#x1F4CB;</p>
             <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>
               Entre para gerenciar suas rotinas de treino.
             </p>
-            <Link href="/login" style={{
+            <Link href="/login" className="btn-glow" style={{
               textDecoration: 'none',
-              background: 'var(--primary)',
+              background: 'linear-gradient(135deg, var(--primary), var(--primary-dark))',
               color: '#fff',
               padding: '0.6rem 1.5rem',
-              borderRadius: '0.5rem',
-              fontWeight: 600,
+              borderRadius: 'var(--radius-sm)',
+              fontWeight: 700,
+              fontSize: '0.85rem',
+              letterSpacing: '0.05em',
+              textTransform: 'uppercase',
             }}>Entrar</Link>
           </div>
         ) : loading ? (
-          <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>Carregando rotinas...</div>
+          <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
+            <span style={{ fontSize: '0.85rem', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Carregando rotinas...</span>
+          </div>
         ) : routines.length === 0 ? (
-          <div style={{
+          <div className="animate-in" style={{
             textAlign: 'center',
             padding: '3rem',
             background: 'var(--surface)',
-            borderRadius: '1rem',
+            borderRadius: 'var(--radius-lg)',
             border: '1px solid var(--border)',
+            boxShadow: 'var(--shadow-card)',
           }}>
             <p style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>&#x1F4CB;</p>
             <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>
               Nenhuma rotina ainda. Crie sua primeira rotina para começar!
             </p>
-            <Link href="/routines/new" style={{
+            <Link href="/routines/new" className="btn-glow" style={{
               textDecoration: 'none',
-              background: 'var(--primary)',
+              background: 'linear-gradient(135deg, var(--primary), var(--primary-dark))',
               color: '#fff',
               padding: '0.6rem 1.5rem',
-              borderRadius: '0.5rem',
-              fontWeight: 600,
+              borderRadius: 'var(--radius-sm)',
+              fontWeight: 700,
+              fontSize: '0.85rem',
+              letterSpacing: '0.05em',
+              textTransform: 'uppercase',
             }}>Criar Rotina</Link>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            {routines.map(routine => (
-              <div key={routine.id} style={{
-                background: 'var(--surface)',
+            {routines.map((routine, idx) => (
+              <div key={routine.id} className="card-hover animate-in" style={{
+                background: 'var(--gradient-card)',
+                backgroundColor: 'var(--surface)',
                 border: '1px solid var(--border)',
-                borderRadius: '0.75rem',
+                borderRadius: 'var(--radius-md)',
                 padding: '1rem 1.25rem',
+                animationDelay: `${idx * 0.05}s`,
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                   <Link href={`/routines/${routine.id}`} style={{
                     textDecoration: 'none',
                     color: 'var(--text)',
-                    fontSize: '1.05rem',
+                    fontSize: '1rem',
                     fontWeight: 700,
                   }}>{routine.name}</Link>
                   <button onClick={() => handleDelete(routine.id)} style={{
@@ -141,10 +164,11 @@ export default function RoutinesPage() {
                     color: 'var(--text-muted)',
                     cursor: 'pointer',
                     fontSize: '0.8rem',
+                    transition: 'color 0.2s',
                   }}>&#x1F5D1;</button>
                 </div>
                 {routine.description && (
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '0.5rem' }}>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', marginBottom: '0.5rem' }}>
                     {routine.description}
                   </p>
                 )}
@@ -152,12 +176,14 @@ export default function RoutinesPage() {
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
                     {routine.sets.map(s => (
                       <span key={s.id} style={{
-                        background: 'rgba(255,107,53,0.1)',
+                        background: 'rgba(255,107,53,0.08)',
                         color: 'var(--primary-light)',
-                        padding: '0.15rem 0.55rem',
+                        padding: '0.18rem 0.6rem',
                         borderRadius: '999px',
-                        fontSize: '0.72rem',
-                        fontWeight: 500,
+                        fontSize: '0.7rem',
+                        fontWeight: 600,
+                        border: '1px solid rgba(255,107,53,0.06)',
+                        letterSpacing: '0.02em',
                       }}>
                         {s.exercise.name} ({s.sets}x{s.reps})
                       </span>

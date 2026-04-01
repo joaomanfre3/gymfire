@@ -58,74 +58,105 @@ export default function StartWorkoutPage() {
     <div style={{ minHeight: '100vh', background: 'var(--background)' }}>
       <Navbar />
       <main style={{ maxWidth: '600px', margin: '0 auto', padding: '1.5rem 1rem' }}>
-        <h1 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '1.25rem' }}>Iniciar Treino</h1>
+        <h1 style={{
+          fontSize: '1.4rem',
+          fontWeight: 900,
+          marginBottom: '1.25rem',
+          fontFamily: "'Orbitron', sans-serif",
+          letterSpacing: '0.05em',
+          textTransform: 'uppercase',
+        }}>
+          <span className="gradient-text" style={{ fontFamily: "'Orbitron', sans-serif" }}>Iniciar Treino</span>
+        </h1>
 
         {/* Quick start */}
         <button
           onClick={() => handleStart()}
           disabled={starting}
+          className="btn-glow"
           style={{
             width: '100%',
-            padding: '1.25rem',
-            background: 'linear-gradient(135deg, var(--primary), var(--primary-light))',
+            padding: '1.5rem',
+            background: 'linear-gradient(135deg, var(--primary), var(--primary-dark), var(--primary))',
+            backgroundSize: '200% 200%',
+            animation: 'gradient-shift 3s ease infinite',
             color: '#fff',
             border: 'none',
-            borderRadius: '1rem',
+            borderRadius: 'var(--radius-lg)',
             fontSize: '1.1rem',
-            fontWeight: 700,
+            fontWeight: 800,
             cursor: starting ? 'not-allowed' : 'pointer',
-            marginBottom: '1.5rem',
+            marginBottom: '1.75rem',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: '0.5rem',
+            gap: '0.6rem',
+            boxShadow: '0 0 30px rgba(255, 107, 53, 0.25), 0 4px 20px rgba(0,0,0,0.3)',
+            letterSpacing: '0.05em',
+            textTransform: 'uppercase',
+            fontFamily: "'Orbitron', sans-serif",
+            position: 'relative',
+            overflow: 'hidden',
           }}
         >
-          &#x26A1; Início Rápido (Treino Livre)
+          <span style={{ fontSize: '1.3rem', filter: 'drop-shadow(0 0 6px rgba(255,255,255,0.3))' }}>&#x26A1;</span>
+          Início Rápido
         </button>
 
-        <h2 style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>
-          Ou escolha uma rotina:
+        <h2 style={{
+          fontSize: '0.85rem',
+          fontWeight: 600,
+          color: 'var(--text-muted)',
+          marginBottom: '0.75rem',
+          textTransform: 'uppercase',
+          letterSpacing: '0.1em',
+        }}>
+          Ou escolha uma rotina
         </h2>
 
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>Carregando rotinas...</div>
+          <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
+            <span style={{ fontSize: '0.85rem', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Carregando rotinas...</span>
+          </div>
         ) : routines.length === 0 ? (
-          <div style={{
+          <div className="animate-in" style={{
             textAlign: 'center', padding: '2rem',
-            background: 'var(--surface)', borderRadius: '1rem', border: '1px solid var(--border)',
+            background: 'var(--surface)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)',
             color: 'var(--text-secondary)',
+            boxShadow: 'var(--shadow-card)',
           }}>
             <p>Nenhuma rotina ainda.</p>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+            <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
               Crie rotinas para iniciar treinos estruturados rapidamente.
             </p>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-            {routines.map(r => (
+            {routines.map((r, idx) => (
               <button
                 key={r.id}
                 onClick={() => handleStart(r.id, r.name)}
                 disabled={starting}
+                className="card-hover animate-in"
                 style={{
-                  background: 'var(--surface)',
+                  background: 'var(--gradient-card)',
+                  backgroundColor: 'var(--surface)',
                   border: '1px solid var(--border)',
-                  borderRadius: '0.75rem',
-                  padding: '1rem 1.25rem',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '1.1rem 1.25rem',
                   cursor: 'pointer',
                   textAlign: 'left',
                   width: '100%',
-                  transition: 'border-color 0.2s',
+                  animationDelay: `${idx * 0.05}s`,
                 }}
               >
-                <p style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--text)', margin: 0 }}>{r.name}</p>
+                <p style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text)', margin: 0 }}>{r.name}</p>
                 {r.description && (
                   <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', margin: '0.25rem 0 0' }}>{r.description}</p>
                 )}
                 {r.sets.length > 0 && (
-                  <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', margin: '0.35rem 0 0' }}>
-                    {r.sets.map(s => s.exercise.name).join(', ')}
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.72rem', margin: '0.4rem 0 0' }}>
+                    {r.sets.map(s => s.exercise.name).join(' · ')}
                   </p>
                 )}
               </button>
