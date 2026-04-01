@@ -3,7 +3,7 @@ export function getToken(): string | null {
   return localStorage.getItem('access_token');
 }
 
-export function getUser(): { id: string; username: string; displayName: string; email: string } | null {
+export function getUser(): { id: string; username: string; displayName: string; email: string; role?: string } | null {
   if (typeof window === 'undefined') return null;
   const stored = localStorage.getItem('user_info');
   if (!stored) return null;
