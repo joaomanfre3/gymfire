@@ -42,6 +42,7 @@ export async function GET(request: Request) {
         avatar: c.type === 'DIRECT' ? otherParticipants[0]?.user.avatarUrl : c.avatarUrl,
         username: c.type === 'DIRECT' ? otherParticipants[0]?.user.username : null,
         userId: c.type === 'DIRECT' ? otherParticipants[0]?.user.id : null,
+        memberCount: c.type === 'GROUP' ? c.participants.length : undefined,
         lastMessage: lastMessage ? {
           content: lastMessage.content,
           createdAt: lastMessage.createdAt,

@@ -170,7 +170,7 @@ export default function GroupPage({ params }: { params: Promise<{ groupId: strin
         display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px',
         borderBottom: '1px solid rgba(148,148,172,0.08)', maxWidth: '900px', width: '100%', margin: '0 auto',
       }}>
-        <button onClick={() => router.push('/groups')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
+        <button onClick={() => router.push('/messages')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
           <ArrowLeftIcon />
         </button>
         <div style={{

@@ -52,7 +52,6 @@ export default function Navbar() {
   const navLinks = [
     { href: '/', label: 'Feed' },
     { href: '/exercises', label: 'Exercícios' },
-    { href: '/ranking', label: 'Ranking' },
   ];
 
   const loggedInLinks = [

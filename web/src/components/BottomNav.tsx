@@ -39,6 +39,15 @@ function RankingIcon({ active }: { active: boolean }) {
   );
 }
 
+function MessageIcon({ active }: { active: boolean }) {
+  const color = active ? '#FF6B35' : 'currentColor';
+  return (
+    <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+    </svg>
+  );
+}
+
 function ProfileIcon({ active }: { active: boolean }) {
   const color = active ? '#FF6B35' : 'currentColor';
   return (
@@ -52,7 +61,7 @@ const navItems = [
   { href: '/', label: 'Feed', icon: (a: boolean) => <HomeIcon active={a} /> },
   { href: '/explore', label: 'Explorar', icon: (a: boolean) => <ExerciseIcon active={a} /> },
   { href: '/workout', label: 'Treinar', icon: (_a: boolean) => <WorkoutIcon />, isCenter: true },
-  { href: '/ranking', label: 'Ranking', icon: (a: boolean) => <RankingIcon active={a} /> },
+  { href: '/messages', label: 'Mensagens', icon: (a: boolean) => <MessageIcon active={a} /> },
   { href: '/profile', label: 'Perfil', icon: (a: boolean) => <ProfileIcon active={a} /> },
 ];
 

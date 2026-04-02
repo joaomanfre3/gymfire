@@ -52,7 +52,6 @@ const navItems = [
   { href: '/explore', label: 'Explorar', icon: (a: boolean) => <SearchIcon active={a} /> },
   { href: '/reels', label: 'Reels', icon: (a: boolean) => <DumbbellIcon active={a} /> },
   { href: '/messages', label: 'Mensagens', icon: (a: boolean) => <MessageIcon active={a} /> },
-  { href: '/ranking', label: 'Ranking', icon: (a: boolean) => <TrophyIcon active={a} /> },
 ];
 
 export default function SidebarNav() {

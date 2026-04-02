@@ -225,6 +225,19 @@ export default function ProfilePage() {
         </div>
       </div>
 
+      {/* Admin shield button */}
+      {isAdmin && (
+        <Link href="/admin-panel" style={{
+          textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+          padding: '10px', borderRadius: '10px', marginBottom: '8px',
+          background: 'rgba(255, 77, 106, 0.06)', border: '1px solid rgba(255, 77, 106, 0.15)',
+          color: '#FF4D6A', fontSize: '13px', fontWeight: 700,
+        }}>
+          <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="#FF4D6A" strokeWidth={1.5}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
+          Painel Admin
+        </Link>
+      )}
+
       {/* Action buttons */}
       <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
         <Link href="/settings/edit-profile" style={{
