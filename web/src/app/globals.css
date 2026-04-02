@@ -208,3 +208,51 @@ body > * {
   .desktop-nav { display: none !important; }
   .mobile-menu-btn { display: block !important; }
 }
+
+/* Feed-specific styles */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+/* Shimmer animation for skeleton loaders */
+.shimmer {
+  background: linear-gradient(90deg, #1A1A28 0%, #1E1E2E 50%, #1A1A28 100%) !important;
+  background-size: 200% 100% !important;
+  animation: shimmer 1.5s infinite !important;
+}
+
+/* Heart pop animation for double-tap */
+@keyframes heartPop {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0); }
+  15% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+  30% { transform: translate(-50%, -50%) scale(1); }
+  70% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+}
+
+/* Carousel nav arrows - show on hover */
+div:hover > .carousel-nav {
+  opacity: 1 !important;
+}
+
+/* Feed sidebar - show only on wide screens */
+.feed-sidebar-right {
+  display: none;
+}
+
+@media (min-width: 1280px) {
+  .feed-sidebar-right {
+    display: block;
+  }
+}
+
+/* Hide quick actions on mobile */
+@media (max-width: 768px) {
+  .hide-scrollbar-mobile {
+    display: none !important;
+  }
+}
