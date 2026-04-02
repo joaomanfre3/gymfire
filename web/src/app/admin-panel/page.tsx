@@ -39,22 +39,39 @@ export default function AdminPanelPage() {
     loadData();
   }, [router, currentUser?.role]);
 
+  const [loadError, setLoadError] = useState('');
+
   async function loadData() {
+    setLoadError('');
     try {
-      const [usersRes, statsRes] = await Promise.all([
-        apiFetch('/api/admin/users'),
-        apiFetch('/api/admin/dashboard'),
-      ]);
+      // Load users
+      const usersRes = await apiFetch('/api/admin/users');
       if (usersRes.ok) {
         const data = await usersRes.json();
-        setUsers(Array.isArray(data) ? data : data.users || []);
+        const usersList = Array.isArray(data) ? data : data.users || [];
+        // Map _count fields if present
+        setUsers(usersList.map((u: Record<string, unknown>) => ({
+          ...u,
+          workoutsCount: (u._count as Record<string, number>)?.workouts ?? u.workoutsCount ?? 0,
+          postsCount: (u._count as Record<string, number>)?.posts ?? u.postsCount ?? 0,
+          followersCount: (u._count as Record<string, number>)?.followers ?? u.followersCount ?? 0,
+          followingCount: (u._count as Record<string, number>)?.following ?? u.followingCount ?? 0,
+        })));
+      } else {
+        const err = await usersRes.json().catch(() => ({ error: `HTTP ${usersRes.status}` }));
+        setLoadError(`Erro ao carregar usuários: ${err.error || usersRes.status}`);
       }
+
+      // Load stats
+      const statsRes = await apiFetch('/api/admin/dashboard');
       if (statsRes.ok) {
         const d = await statsRes.json();
         const s = d.stats || d;
         setStats({ totalUsers: s.totalUsers || 0, totalExercises: s.totalExercises || 0, totalWorkouts: s.totalWorkouts || 0, totalPosts: s.totalPosts || 0, totalConversations: 0 });
       }
-    } catch { /* ignore */ }
+    } catch (e) {
+      setLoadError(`Erro de conexão: ${e}`);
+    }
     setLoading(false);
   }
 
@@ -173,6 +190,15 @@ export default function AdminPanelPage() {
             placeholder="Buscar por nome, username ou email..."
             style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: '#F0F0F8', fontSize: '14px' }} />
         </div>
+
+        {/* Error display */}
+        {loadError && (
+          <div style={{
+            padding: '12px 16px', borderRadius: '10px', marginBottom: '12px',
+            background: 'rgba(255,77,106,0.08)', border: '1px solid rgba(255,77,106,0.2)',
+            color: '#FF4D6A', fontSize: '13px', fontWeight: 600,
+          }}>{loadError}</div>
+        )}
 
         {/* Users table */}
         <div style={{ background: '#141420', borderRadius: '16px', border: '1px solid rgba(148,148,172,0.08)', overflow: 'hidden' }}>
