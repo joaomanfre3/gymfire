@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { apiFetch, getToken, getUser, logout } from '@/lib/api';
+import AdminPanel from './AdminPanel';
 import type { ProfileData, WorkoutHistory, PersonalRecordEntry, AchievementEntry } from '@/lib/profile-types';
 import { getTier } from '@/lib/profile-types';
 import { mockProfile } from '@/lib/profile-mock-data';
@@ -77,6 +78,23 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'history' | 'records' | 'achievements'>('history');
+  const [showAdmin, setShowAdmin] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  // Listen for Ctrl+Shift+A to toggle admin panel
+  useEffect(() => {
+    const user = getUser();
+    if (user?.role === 'ADMIN') setIsAdmin(true);
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.shiftKey && e.key === 'A') {
+        e.preventDefault();
+        if (user?.role === 'ADMIN') setShowAdmin(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   useEffect(() => {
     loadProfile();
@@ -441,6 +459,9 @@ export default function ProfilePage() {
       <div style={{ textAlign: 'center', marginTop: '24px', fontSize: '11px', color: '#5C5C72' }}>
         Membro desde {new Date(p.memberSince).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
       </div>
+
+      {/* Hidden admin panel - Ctrl+Shift+A */}
+      {showAdmin && isAdmin && <AdminPanel onClose={() => setShowAdmin(false)} />}
     </div>
   );
 }
