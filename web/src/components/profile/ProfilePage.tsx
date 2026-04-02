@@ -1,103 +1,111 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { apiFetch, getToken, getUser, logout } from '@/lib/api';
 import AdminPanel from './AdminPanel';
-import type { ProfileData, WorkoutHistory, PersonalRecordEntry, AchievementEntry } from '@/lib/profile-types';
+import type { ProfileData, AchievementEntry } from '@/lib/profile-types';
 import { getTier } from '@/lib/profile-types';
 import { mockProfile } from '@/lib/profile-mock-data';
 
-// ======== SVG ICONS ========
-function FlameIcon({ size = 16, color = '#FF6B35' }: { size?: number; color?: string }) {
-  return <svg width={size} height={size} viewBox="0 0 24 24" fill={color} stroke="none"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14 0-5.5 3-7 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.4-2.15 1-3 .22.65.84 1.3 1.5 1.5z" /></svg>;
+// ======== ICONS ========
+function SettingsIcon({ size = 22 }: { size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="#F0F0F8" strokeWidth={1.5}><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>;
 }
-function ZapIcon({ size = 14, color = '#CCFF00' }: { size?: number; color?: string }) {
-  return <svg width={size} height={size} viewBox="0 0 24 24" fill={color} stroke="none"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg>;
+function GridIcon({ active }: { active: boolean }) {
+  const c = active ? '#F0F0F8' : '#5C5C72';
+  return <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth={1.5}><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /></svg>;
 }
-function TrophyIcon({ size = 16, color = '#FFB800' }: { size?: number; color?: string }) {
-  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M10 22V14a2 2 0 0 1-2-2V4h8v8a2 2 0 0 1-2 2v8" /></svg>;
+function FilmIcon({ active }: { active: boolean }) {
+  const c = active ? '#F0F0F8' : '#5C5C72';
+  return <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth={1.5}><rect x="2" y="2" width="20" height="20" rx="2" /><line x1="7" y1="2" x2="7" y2="22" /><line x1="17" y1="2" x2="17" y2="22" /><line x1="2" y1="12" x2="22" y2="12" /><line x1="2" y1="7" x2="7" y2="7" /><line x1="2" y1="17" x2="7" y2="17" /><line x1="17" y1="7" x2="22" y2="7" /><line x1="17" y1="17" x2="22" y2="17" /></svg>;
 }
-function StarIcon({ size = 16, color = '#A855F7' }: { size?: number; color?: string }) {
-  return <svg width={size} height={size} viewBox="0 0 24 24" fill={color} stroke="none"><polygon points="12 2 15 8.5 22 9.3 17 14 18.2 21 12 17.5 5.8 21 7 14 2 9.3 9 8.5 12 2" /></svg>;
+function TrophySmIcon({ active }: { active: boolean }) {
+  const c = active ? '#F0F0F8' : '#5C5C72';
+  return <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth={1.5}><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20 7 22h10c0-2-.85-3.25-2.03-3.79A1.07 1.07 0 0 1 14 17v-2.34" /><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" /></svg>;
 }
-function TargetIcon({ size = 16, color = '#10B981' }: { size?: number; color?: string }) {
-  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.5}><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="6" /><circle cx="12" cy="12" r="2" /></svg>;
+function MedalIcon({ active }: { active: boolean }) {
+  const c = active ? '#F0F0F8' : '#5C5C72';
+  return <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth={1.5}><polygon points="12 2 15 8.5 22 9.3 17 14 18.2 21 12 17.5 5.8 21 7 14 2 9.3 9 8.5 12 2" /></svg>;
 }
-function MountainIcon({ size = 16, color = '#FF6B35' }: { size?: number; color?: string }) {
-  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><path d="M8 3l4 8 5-5 5 15H2L8 3z" /></svg>;
+function TrendUpIcon({ size = 14 }: { size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth={2}><polyline points="23 6 13.5 15.5 8.5 10.5 1 18" /><polyline points="17 6 23 6 23 12" /></svg>;
 }
-function TrendUpIcon({ size = 16, color = '#10B981' }: { size?: number; color?: string }) {
-  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18" /><polyline points="17 6 23 6 23 12" /></svg>;
-}
-function CheckIcon({ size = 12, color = '#0A0A0F' }: { size?: number; color?: string }) {
-  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>;
-}
-function LogoutIcon({ size = 16, color = '#FF4D6A' }: { size?: number; color?: string }) {
-  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" /></svg>;
+function CheckIcon({ size = 12 }: { size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="#0A0A0F" strokeWidth={3}><polyline points="20 6 9 17 4 12" /></svg>;
 }
 
-const achievementIcons: Record<string, (s: number, c: string) => React.ReactNode> = {
-  flame: (s, c) => <FlameIcon size={s} color={c} />,
-  trophy: (s, c) => <TrophyIcon size={s} color={c} />,
-  zap: (s, c) => <ZapIcon size={s} color={c} />,
-  star: (s, c) => <StarIcon size={s} color={c} />,
-  medal: (s, c) => <TrophyIcon size={s} color={c} />,
-  crown: (s, c) => <StarIcon size={s} color={c} />,
-  target: (s, c) => <TargetIcon size={s} color={c} />,
-  mountain: (s, c) => <MountainIcon size={s} color={c} />,
+// Achievement icons mapping
+const achieveIcons: Record<string, React.ReactNode> = {
+  flame: <svg width={16} height={16} viewBox="0 0 24 24" fill="#FF6B35" stroke="none"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14 0-5.5 3-7 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.4-2.15 1-3 .22.65.84 1.3 1.5 1.5z" /></svg>,
+  trophy: <TrophySmIcon active={false} />,
+  zap: <svg width={16} height={16} viewBox="0 0 24 24" fill="#CCFF00" stroke="none"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg>,
+  star: <MedalIcon active={false} />,
+  medal: <TrophySmIcon active={false} />,
+  crown: <MedalIcon active={false} />,
+  target: <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth={1.5}><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="6" /><circle cx="12" cy="12" r="2" /></svg>,
+  mountain: <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="#FF6B35" strokeWidth={1.5}><path d="M8 3l4 8 5-5 5 15H2L8 3z" /></svg>,
 };
+const rarityColors: Record<string, string> = { common: '#9494AC', rare: '#3B82F6', epic: '#A855F7', legendary: '#FFB800' };
 
-const rarityColors: Record<string, string> = {
-  common: '#9494AC', rare: '#3B82F6', epic: '#A855F7', legendary: '#FFB800',
-};
-
-// ======== ACTIVITY RING ========
-function ActivityRing({ label, current, goal, color, size = 64 }: { label: string; current: number; goal: number; color: string; size?: number }) {
+// Activity Ring
+function ActivityRing({ label, current, goal, color, size = 58 }: { label: string; current: number; goal: number; color: string; size?: number }) {
   const r = (size - 8) / 2;
   const circ = 2 * Math.PI * r;
   const pct = Math.min(current / goal, 1);
   const offset = circ * (1 - pct);
-
   return (
     <div style={{ textAlign: 'center' }}>
       <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#1A1A28" strokeWidth={6} />
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={6}
-          strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round"
-          style={{ transition: 'stroke-dashoffset 1s ease' }} />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#1A1A28" strokeWidth={5} />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={5} strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round" style={{ transition: 'stroke-dashoffset 1s ease' }} />
       </svg>
-      <div style={{ fontSize: '12px', fontWeight: 700, color, marginTop: '4px' }}>{Math.round(pct * 100)}%</div>
-      <div style={{ fontSize: '10px', color: '#5C5C72', marginTop: '1px' }}>{label}</div>
+      <div style={{ fontSize: '11px', fontWeight: 700, color, marginTop: '3px' }}>{Math.round(pct * 100)}%</div>
+      <div style={{ fontSize: '9px', color: '#5C5C72' }}>{label}</div>
     </div>
   );
 }
 
-// ======== MAIN COMPONENT ========
+// Mock post images for grid
+const mockPostImages = [
+  'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=300&h=300&fit=crop',
+  'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=300&h=300&fit=crop',
+  'https://images.unsplash.com/photo-1526506118085-60ce8714f8c5?w=300&h=300&fit=crop',
+  'https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=300&h=300&fit=crop',
+  'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=300&h=300&fit=crop',
+  'https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=300&h=300&fit=crop',
+  'https://images.unsplash.com/photo-1461896836934-bd45ba448c52?w=300&h=300&fit=crop',
+  'https://images.unsplash.com/photo-1605296867304-46d5465a13f1?w=300&h=300&fit=crop',
+  'https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=300&h=300&fit=crop',
+];
+
+const mockCutThumbnails = [
+  'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=300&h=500&fit=crop',
+  'https://images.unsplash.com/photo-1526506118085-60ce8714f8c5?w=300&h=500&fit=crop',
+  'https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=300&h=500&fit=crop',
+  'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=300&h=500&fit=crop',
+  'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=300&h=500&fit=crop',
+  'https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=300&h=500&fit=crop',
+];
+
+type ProfileTab = 'posts' | 'cuts' | 'records' | 'achievements';
+
 export default function ProfilePage() {
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'history' | 'records' | 'achievements'>('history');
+  const [activeTab, setActiveTab] = useState<ProfileTab>('posts');
   const [showAdmin, setShowAdmin] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
 
-  // Listen for Ctrl+Shift+A to toggle admin panel
   useEffect(() => {
     const user = getUser();
     if (user?.role === 'ADMIN') setIsAdmin(true);
-
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.ctrlKey && e.shiftKey && e.key === 'A') {
-        e.preventDefault();
-        if (user?.role === 'ADMIN') setShowAdmin(prev => !prev);
-      }
+      if (e.ctrlKey && e.shiftKey && e.key === 'A') { e.preventDefault(); if (user?.role === 'ADMIN') setShowAdmin(prev => !prev); }
     };
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
-
-  useEffect(() => {
     loadProfile();
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
   async function loadProfile() {
@@ -110,30 +118,14 @@ export default function ProfilePage() {
           const level = Math.max(1, Math.floor((data.totalPoints || 0) / 500));
           setProfile({
             ...mockProfile,
-            id: data.id,
-            username: data.username,
-            displayName: data.displayName,
-            bio: data.bio || mockProfile.bio,
-            isVerified: false,
-            level,
-            xp: data.totalPoints || 0,
-            xpToNext: 500 - ((data.totalPoints || 0) % 500),
-            tier: getTier(level),
-            stats: {
-              ...mockProfile.stats,
-              workouts: data.workoutsCount || mockProfile.stats.workouts,
-              streak: data.currentStreak || mockProfile.stats.streak,
-              streakRecord: data.longestStreak || mockProfile.stats.streakRecord,
-            },
-            social: {
-              followers: data.followersCount || 0,
-              following: data.followingCount || 0,
-              posts: mockProfile.social.posts,
-            },
+            id: data.id, username: data.username, displayName: data.displayName,
+            bio: data.bio || mockProfile.bio, isVerified: data.isVerified || false,
+            level, xp: data.totalPoints || 0, xpToNext: 500 - ((data.totalPoints || 0) % 500), tier: getTier(level),
+            stats: { ...mockProfile.stats, workouts: data.workoutsCount || mockProfile.stats.workouts, streak: data.currentStreak || mockProfile.stats.streak, streakRecord: data.longestStreak || mockProfile.stats.streakRecord },
+            social: { followers: data.followersCount || 0, following: data.followingCount || 0, posts: data.postsCount || mockProfile.social.posts },
             memberSince: data.createdAt,
           });
-          setLoading(false);
-          return;
+          setLoading(false); return;
         }
       } catch { /* fallthrough */ }
     }
@@ -156,18 +148,20 @@ export default function ProfilePage() {
   const p = profile;
   const xpPct = Math.round((p.xp / (p.xp + p.xpToNext)) * 100);
 
+  const tabs: { key: ProfileTab; icon: (a: boolean) => React.ReactNode; label: string }[] = [
+    { key: 'posts', icon: (a) => <GridIcon active={a} />, label: 'Posts' },
+    { key: 'cuts', icon: (a) => <FilmIcon active={a} />, label: 'Cuts' },
+    { key: 'records', icon: (a) => <TrophySmIcon active={a} />, label: 'Records' },
+    { key: 'achievements', icon: (a) => <MedalIcon active={a} />, label: 'Conquistas' },
+  ];
+
   return (
-    <div style={{ maxWidth: '640px', margin: '0 auto', padding: '20px 16px 40px' }}>
+    <div style={{ maxWidth: '640px', margin: '0 auto', padding: '20px 16px 80px' }}>
 
-      {/* ===== 1. HERO CARD ===== */}
-      <div style={{
-        background: '#141420', borderRadius: '20px', border: '1px solid rgba(148,148,172,0.08)',
-        padding: '28px 20px 24px', marginBottom: '16px', textAlign: 'center', position: 'relative', overflow: 'hidden',
-      }}>
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '100px', background: `radial-gradient(ellipse at 50% 0%, ${p.tier.color}10, transparent 60%)`, pointerEvents: 'none' }} />
-
-        {/* Avatar */}
-        <div style={{ position: 'relative', display: 'inline-block', marginBottom: '14px' }}>
+      {/* ===== INSTAGRAM-STYLE HEADER ===== */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '20px', marginBottom: '16px' }}>
+        {/* Avatar (left) */}
+        <div style={{ position: 'relative', flexShrink: 0 }}>
           <div style={{
             width: '80px', height: '80px', borderRadius: '50%',
             border: `3px solid ${p.tier.borderColor}`,
@@ -179,295 +173,231 @@ export default function ProfilePage() {
             {p.avatar ? <img src={p.avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : p.displayName[0].toUpperCase()}
           </div>
           <div style={{
-            position: 'absolute', bottom: '-2px', right: '-2px', width: '26px', height: '26px', borderRadius: '50%',
-            background: p.tier.color, color: '#0A0A0F', fontSize: '11px', fontWeight: 900,
-            display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2.5px solid #141420',
+            position: 'absolute', bottom: '-2px', right: '-2px', width: '24px', height: '24px', borderRadius: '50%',
+            background: p.tier.color, color: '#0A0A0F', fontSize: '10px', fontWeight: 900,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2.5px solid #0A0A0F',
           }}>{p.level}</div>
         </div>
 
-        {/* Name + badges */}
-        <h1 style={{ fontSize: '20px', fontWeight: 800, color: '#F0F0F8', margin: '0 0 2px' }}>{p.displayName}</h1>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', marginBottom: '6px' }}>
-          <span style={{ fontSize: '13px', color: '#9494AC' }}>@{p.username}</span>
-          {p.isVerified && <span style={{ background: '#FF6B35', color: '#0A0A0F', fontSize: '10px', fontWeight: 800, padding: '1px 6px', borderRadius: '4px' }}>PRO</span>}
-        </div>
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 10px', borderRadius: '6px', background: `${p.tier.color}15`, marginBottom: '10px' }}>
-          <span style={{ fontSize: '11px', fontWeight: 700, color: p.tier.color }}>{p.tier.name}</span>
-        </div>
-        <p style={{ fontSize: '13px', color: '#9494AC', margin: '0 0 16px', lineHeight: 1.5 }}>{p.bio}</p>
-
-        {/* XP Bar */}
-        <div style={{ margin: '0 auto', maxWidth: '280px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-            <span style={{ fontSize: '11px', color: '#5C5C72' }}>Lv.{p.level}</span>
-            <span style={{ fontSize: '11px', color: '#CCFF00', fontWeight: 700 }}>{xpPct}%</span>
-            <span style={{ fontSize: '11px', color: '#5C5C72' }}>Lv.{p.level + 1}</span>
+        {/* Stats (right) */}
+        <div style={{ flex: 1 }}>
+          {/* Username row */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '18px', fontWeight: 700, color: '#F0F0F8' }}>{p.username}</span>
+            {p.isVerified && <span style={{ fontSize: '10px', fontWeight: 800, background: '#FF6B35', color: '#0A0A0F', padding: '2px 6px', borderRadius: '4px' }}>PRO</span>}
+            <span style={{ fontSize: '10px', fontWeight: 700, color: p.tier.color, background: `${p.tier.color}15`, padding: '2px 8px', borderRadius: '4px' }}>{p.tier.name}</span>
+            <Link href="/settings" style={{ marginLeft: 'auto', textDecoration: 'none' }}>
+              <SettingsIcon />
+            </Link>
           </div>
-          <div style={{ height: '6px', borderRadius: '3px', background: '#1A1A28' }}>
-            <div style={{ height: '100%', width: `${xpPct}%`, borderRadius: '3px', background: 'linear-gradient(90deg, #CCFF00, rgba(204,255,0,0.6))', transition: 'width 800ms ease' }} />
-          </div>
-          <div style={{ fontSize: '10px', color: '#5C5C72', marginTop: '4px' }}>{p.xpToNext.toLocaleString()} XP para Level {p.level + 1}</div>
-        </div>
 
-        {/* Social */}
-        <div style={{ display: 'flex', justifyContent: 'center', gap: '24px', marginTop: '16px' }}>
-          {[
-            { v: p.social.followers, l: 'Seguidores' },
-            { v: p.social.following, l: 'Seguindo' },
-            { v: p.social.posts, l: 'Posts' },
-          ].map(s => (
-            <div key={s.l}>
-              <div style={{ fontSize: '16px', fontWeight: 700, color: '#F0F0F8' }}>{s.v}</div>
-              <div style={{ fontSize: '11px', color: '#5C5C72' }}>{s.l}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* ===== 2. STATS OVERVIEW ===== */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px', marginBottom: '16px' }}>
-        {[
-          { label: 'Treinos', value: String(p.stats.workouts), sub: `+${p.stats.workoutsThisWeek} na semana`, icon: <FlameIcon size={18} />, color: '#FF6B35' },
-          { label: 'Streak', value: `${p.stats.streak} dias`, sub: p.stats.streak >= p.stats.streakRecord ? 'recorde!' : `recorde: ${p.stats.streakRecord}`, icon: <ZapIcon size={18} color="#CCFF00" />, color: '#CCFF00' },
-          { label: 'Volume Total', value: `${(p.stats.totalVolume / 1000).toFixed(0)}t`, sub: 'acumulado', icon: <MountainIcon size={18} />, color: '#FF6B35' },
-          { label: 'Recordes', value: String(p.stats.prs), sub: 'pessoais', icon: <TrophyIcon size={18} />, color: '#FFB800' },
-        ].map(s => (
-          <div key={s.label} style={{
-            background: '#141420', borderRadius: '14px', border: '1px solid rgba(148,148,172,0.08)',
-            padding: '16px', display: 'flex', alignItems: 'center', gap: '12px',
-          }}>
-            <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: `${s.color}12`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              {s.icon}
-            </div>
-            <div>
-              <div style={{ fontSize: '18px', fontWeight: 800, color: '#F0F0F8' }}>{s.value}</div>
-              <div style={{ fontSize: '11px', color: '#5C5C72' }}>{s.label} · {s.sub}</div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* ===== 3. ACTIVITY RINGS ===== */}
-      <div style={{
-        background: '#141420', borderRadius: '16px', border: '1px solid rgba(148,148,172,0.08)',
-        padding: '20px', marginBottom: '16px',
-      }}>
-        <div style={{ fontSize: '13px', fontWeight: 700, color: '#5C5C72', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: '16px' }}>
-          Atividade Semanal
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'space-around' }}>
-          <ActivityRing label="Calorias" current={p.activityRings.calories.current} goal={p.activityRings.calories.goal} color="#FF6B35" />
-          <ActivityRing label="Treinos" current={p.activityRings.workouts.current} goal={p.activityRings.workouts.goal} color="#00D4FF" />
-          <ActivityRing label="Tempo" current={p.activityRings.activeTime.current} goal={p.activityRings.activeTime.goal} color="#A855F7" />
-          <ActivityRing label="Hidratação" current={p.activityRings.hydration.current} goal={p.activityRings.hydration.goal} color="#10B981" />
-        </div>
-      </div>
-
-      {/* ===== 4. WEEKLY HEATMAP ===== */}
-      <div style={{
-        background: '#141420', borderRadius: '16px', border: '1px solid rgba(148,148,172,0.08)',
-        padding: '16px 20px', marginBottom: '16px',
-      }}>
-        <div style={{ fontSize: '13px', fontWeight: 700, color: '#5C5C72', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: '12px' }}>
-          Esta Semana
-        </div>
-        <div style={{ display: 'flex', gap: '6px', justifyContent: 'space-between' }}>
-          {['S', 'T', 'Q', 'Q', 'S', 'S', 'D'].map((day, i) => (
-            <div key={i} style={{ flex: 1, textAlign: 'center' }}>
-              <div style={{
-                width: '100%', aspectRatio: '1', borderRadius: '8px', marginBottom: '4px',
-                background: p.weeklyActivity[i] ? '#FF6B35' : 'transparent',
-                border: p.weeklyActivity[i] ? 'none' : '1.5px dashed rgba(148,148,172,0.15)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>
-                {p.weeklyActivity[i] && <CheckIcon size={14} color="#0A0A0F" />}
+          {/* Stats row */}
+          <div style={{ display: 'flex', gap: '20px', marginBottom: '8px' }}>
+            {[
+              { v: p.social.posts, l: 'posts' },
+              { v: p.social.followers, l: 'seguidores' },
+              { v: p.social.following, l: 'seguindo' },
+            ].map(s => (
+              <div key={s.l} style={{ cursor: 'pointer' }}>
+                <span style={{ fontSize: '16px', fontWeight: 700, color: '#F0F0F8' }}>{s.v}</span>
+                <span style={{ fontSize: '13px', color: '#9494AC', marginLeft: '4px' }}>{s.l}</span>
               </div>
-              <span style={{ fontSize: '10px', color: p.weeklyActivity[i] ? '#FF6B35' : '#5C5C72', fontWeight: 600 }}>{day}</span>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* ===== 5. TABS (Histórico / Recordes / Conquistas) ===== */}
+      {/* Display name + bio */}
+      <div style={{ marginBottom: '12px' }}>
+        <div style={{ fontSize: '14px', fontWeight: 700, color: '#F0F0F8' }}>{p.displayName}</div>
+        <div style={{ fontSize: '13px', color: '#9494AC', lineHeight: 1.5, marginTop: '2px' }}>{p.bio}</div>
+      </div>
+
+      {/* XP Progress bar */}
+      <div style={{ marginBottom: '14px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
+          <span style={{ fontSize: '10px', color: '#5C5C72' }}>Lv.{p.level}</span>
+          <span style={{ fontSize: '10px', color: '#CCFF00', fontWeight: 700 }}>{p.xp.toLocaleString()} XP</span>
+          <span style={{ fontSize: '10px', color: '#5C5C72' }}>Lv.{p.level + 1}</span>
+        </div>
+        <div style={{ height: '4px', borderRadius: '2px', background: '#1A1A28' }}>
+          <div style={{ height: '100%', width: `${xpPct}%`, borderRadius: '2px', background: 'linear-gradient(90deg, #CCFF00, rgba(204,255,0,0.6))', transition: 'width 800ms ease' }} />
+        </div>
+      </div>
+
+      {/* Action buttons */}
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+        <button style={{
+          flex: 1, padding: '8px', borderRadius: '8px', border: 'none',
+          background: '#141420', color: '#F0F0F8', fontSize: '13px', fontWeight: 600, cursor: 'pointer',
+        }}>Editar perfil</button>
+        <button style={{
+          flex: 1, padding: '8px', borderRadius: '8px', border: 'none',
+          background: '#141420', color: '#F0F0F8', fontSize: '13px', fontWeight: 600, cursor: 'pointer',
+        }}>Compartilhar</button>
+      </div>
+
+      {/* Activity rings + weekly heatmap (compact row) */}
+      <div style={{ display: 'flex', gap: '10px', marginBottom: '16px' }}>
+        {/* Rings */}
+        <div style={{ flex: 1, background: '#141420', borderRadius: '14px', border: '1px solid rgba(148,148,172,0.08)', padding: '12px 8px', display: 'flex', justifyContent: 'space-around' }}>
+          <ActivityRing label="Cal" current={p.activityRings.calories.current} goal={p.activityRings.calories.goal} color="#FF6B35" size={48} />
+          <ActivityRing label="Treino" current={p.activityRings.workouts.current} goal={p.activityRings.workouts.goal} color="#00D4FF" size={48} />
+          <ActivityRing label="Tempo" current={p.activityRings.activeTime.current} goal={p.activityRings.activeTime.goal} color="#A855F7" size={48} />
+          <ActivityRing label="Água" current={p.activityRings.hydration.current} goal={p.activityRings.hydration.goal} color="#10B981" size={48} />
+        </div>
+
+        {/* Weekly heatmap compact */}
+        <div style={{ background: '#141420', borderRadius: '14px', border: '1px solid rgba(148,148,172,0.08)', padding: '12px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px' }}>
+          <div style={{ fontSize: '9px', fontWeight: 700, color: '#5C5C72', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '2px' }}>Semana</div>
+          <div style={{ display: 'flex', gap: '3px' }}>
+            {['S', 'T', 'Q', 'Q', 'S', 'S', 'D'].map((d, i) => (
+              <div key={i} style={{
+                width: '18px', height: '18px', borderRadius: '4px',
+                background: p.weeklyActivity[i] ? '#FF6B35' : 'transparent',
+                border: p.weeklyActivity[i] ? 'none' : '1px dashed rgba(148,148,172,0.15)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '7px', color: p.weeklyActivity[i] ? '#0A0A0F' : '#5C5C72', fontWeight: 700,
+              }}>
+                {p.weeklyActivity[i] ? <CheckIcon size={8} /> : d}
+              </div>
+            ))}
+          </div>
+          <div style={{ fontSize: '10px', color: '#FF6B35', fontWeight: 700 }}>{p.stats.streak} dias</div>
+        </div>
+      </div>
+
+      {/* ===== CONTENT TABS (Instagram-style) ===== */}
       <div style={{
-        display: 'flex', background: '#141420', borderRadius: '12px', padding: '4px',
-        marginBottom: '16px', border: '1px solid rgba(148,148,172,0.08)',
+        display: 'flex', borderBottom: '1px solid rgba(148,148,172,0.08)', marginBottom: '2px',
       }}>
-        {(['history', 'records', 'achievements'] as const).map(t => {
-          const labels = { history: 'Histórico', records: 'Recordes', achievements: 'Conquistas' };
-          const isActive = activeTab === t;
+        {tabs.map(t => {
+          const isActive = activeTab === t.key;
           return (
-            <button key={t} onClick={() => setActiveTab(t)} style={{
-              flex: 1, padding: '10px 0', border: 'none', borderRadius: '9px', cursor: 'pointer',
-              background: isActive ? '#FF6B35' : 'transparent',
-              color: isActive ? '#0A0A0F' : '#9494AC',
-              fontWeight: isActive ? 700 : 500, fontSize: '13px', transition: 'all 200ms',
+            <button key={t.key} onClick={() => setActiveTab(t.key)} style={{
+              flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+              padding: '12px 0', background: 'transparent', border: 'none', cursor: 'pointer',
+              borderBottom: isActive ? '2px solid #F0F0F8' : '2px solid transparent',
+              transition: 'all 200ms',
             }}>
-              {labels[t]}
+              {t.icon(isActive)}
             </button>
           );
         })}
       </div>
 
-      {/* Tab content */}
-      <div style={{ marginBottom: '16px' }}>
-        {activeTab === 'history' && (
-          <div style={{ background: '#141420', borderRadius: '16px', border: '1px solid rgba(148,148,172,0.08)', overflow: 'hidden' }}>
-            {p.history.map((h, i) => (
-              <div key={h.id} style={{
-                padding: '14px 16px', borderBottom: i < p.history.length - 1 ? '1px solid rgba(148,148,172,0.08)' : 'none',
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                  <span style={{ fontSize: '14px', fontWeight: 600, color: '#F0F0F8' }}>{h.name}</span>
-                  <span style={{ fontSize: '12px', color: '#5C5C72' }}>{new Date(h.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}</span>
-                </div>
-                <div style={{ display: 'flex', gap: '12px', fontSize: '12px', color: '#9494AC', marginBottom: '6px' }}>
-                  <span>{h.duration}</span><span>{h.volume}</span><span>{h.sets} séries</span><span>{h.calories} cal</span>
-                </div>
-                <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                  {h.exercises.slice(0, 3).map(e => (
-                    <span key={e} style={{ fontSize: '10px', background: 'rgba(255,107,53,0.08)', color: '#FF8050', padding: '2px 8px', borderRadius: '4px', fontWeight: 500 }}>{e}</span>
-                  ))}
-                  {h.exercises.length > 3 && <span style={{ fontSize: '10px', color: '#5C5C72', padding: '2px 4px' }}>+{h.exercises.length - 3}</span>}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+      {/* ===== TAB CONTENT ===== */}
 
-        {activeTab === 'records' && (
-          <div style={{ background: '#141420', borderRadius: '16px', border: '1px solid rgba(148,148,172,0.08)', overflow: 'hidden' }}>
-            {p.records.map((r, i) => (
-              <div key={r.id} style={{
-                padding: '14px 16px', borderBottom: i < p.records.length - 1 ? '1px solid rgba(148,148,172,0.08)' : 'none',
-                display: 'flex', alignItems: 'center', gap: '12px',
-              }}>
-                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(255,184,0,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <TrophyIcon size={18} />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span style={{ fontSize: '14px', fontWeight: 600, color: '#F0F0F8' }}>{r.exercise}</span>
-                    {r.isNew && <span style={{ fontSize: '9px', fontWeight: 800, background: '#CCFF00', color: '#0A0A0F', padding: '1px 6px', borderRadius: '3px' }}>NOVO</span>}
-                  </div>
-                  <div style={{ fontSize: '12px', color: '#9494AC', marginTop: '2px' }}>
-                    {r.previousValue} → <span style={{ color: '#CCFF00', fontWeight: 600 }}>{r.currentValue}</span>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
-                  <TrendUpIcon size={14} />
-                  <span style={{ fontSize: '13px', fontWeight: 700, color: '#10B981' }}>{r.improvement}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {activeTab === 'achievements' && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
-            {p.achievements.map(a => {
-              const color = rarityColors[a.rarity];
-              const iconFn = achievementIcons[a.icon];
-              return (
-                <div key={a.id} style={{
-                  background: '#141420', borderRadius: '14px', border: `1px solid ${a.unlocked ? `${color}30` : 'rgba(148,148,172,0.08)'}`,
-                  padding: '16px', opacity: a.unlocked ? 1 : 0.6,
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                    <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: `${color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      {iconFn ? iconFn(16, color) : <StarIcon size={16} color={color} />}
-                    </div>
-                    <div style={{ fontSize: '9px', fontWeight: 700, color, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{a.rarity}</div>
-                  </div>
-                  <div style={{ fontSize: '13px', fontWeight: 700, color: '#F0F0F8', marginBottom: '3px' }}>{a.title}</div>
-                  <div style={{ fontSize: '11px', color: '#5C5C72', lineHeight: 1.4 }}>{a.description}</div>
-                  {!a.unlocked && a.progress !== undefined && (
-                    <div style={{ marginTop: '8px' }}>
-                      <div style={{ height: '4px', borderRadius: '2px', background: '#1A1A28' }}>
-                        <div style={{ height: '100%', width: `${a.progress}%`, borderRadius: '2px', background: color, transition: 'width 500ms' }} />
-                      </div>
-                      <div style={{ fontSize: '10px', color: '#5C5C72', marginTop: '3px' }}>{a.progress}%</div>
-                    </div>
-                  )}
-                  {a.unlocked && (
-                    <div style={{ marginTop: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <CheckIcon size={10} color={color} />
-                      <span style={{ fontSize: '10px', fontWeight: 600, color }}>Desbloqueado</span>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* ===== 6. EVOLUTION CHART ===== */}
-      <div style={{
-        background: '#141420', borderRadius: '16px', border: '1px solid rgba(148,148,172,0.08)',
-        padding: '20px', marginBottom: '16px',
-      }}>
-        <div style={{ fontSize: '13px', fontWeight: 700, color: '#5C5C72', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: '16px' }}>
-          Evolução Mensal (Volume)
-        </div>
-        {(() => {
-          const maxVal = Math.max(...p.monthlyVolume.map(m => m.value));
-          return (
-            <div style={{ display: 'flex', alignItems: 'flex-end', gap: '8px', height: '120px' }}>
-              {p.monthlyVolume.map((m, i) => {
-                const h = maxVal > 0 ? (m.value / maxVal) * 100 : 0;
-                return (
-                  <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end' }}>
-                    <div style={{ fontSize: '10px', fontWeight: 600, color: '#9494AC', marginBottom: '4px' }}>{(m.value / 1000).toFixed(0)}t</div>
-                    <div className="podium-bar" style={{
-                      width: '100%', maxWidth: '36px', height: `${h}%`, borderRadius: '6px 6px 0 0',
-                      background: i === p.monthlyVolume.length - 1 ? 'linear-gradient(180deg, #FF6B35, #E05520)' : 'linear-gradient(180deg, rgba(255,107,53,0.3), rgba(255,107,53,0.1))',
-                      animationDelay: `${i * 80}ms`,
-                    }} />
-                    <div style={{ fontSize: '10px', color: '#5C5C72', marginTop: '6px' }}>{m.month}</div>
-                  </div>
-                );
-              })}
+      {/* Posts grid */}
+      {activeTab === 'posts' && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '2px' }}>
+          {mockPostImages.map((img, i) => (
+            <div key={i} style={{
+              aspectRatio: '1', backgroundImage: `url(${img})`,
+              backgroundSize: 'cover', backgroundPosition: 'center',
+              cursor: 'pointer', position: 'relative',
+            }}>
+              <div style={{
+                position: 'absolute', inset: 0, background: 'transparent',
+                transition: 'background 200ms',
+              }}
+                onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,0,0,0.2)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+              />
             </div>
-          );
-        })()}
-      </div>
+          ))}
+        </div>
+      )}
 
-      {/* ===== 7. ACTIONS ===== */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        <Link href={`/profile/${p.username}`} style={{
-          textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-          padding: '14px', borderRadius: '12px', background: '#141420', border: '1px solid rgba(148,148,172,0.08)',
-          color: '#F0F0F8', fontSize: '14px', fontWeight: 600,
-        }}>
-          Ver Perfil Público
-        </Link>
-        <Link href="/settings" style={{
-          textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-          padding: '14px', borderRadius: '12px', background: '#141420', border: '1px solid rgba(148,148,172,0.08)',
-          color: '#9494AC', fontSize: '14px', fontWeight: 600,
-        }}>
-          Configurações
-        </Link>
-        <button
-          onClick={() => { if (confirm('Tem certeza que deseja sair?')) logout(); }}
-          style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-            padding: '14px', borderRadius: '12px', background: 'transparent',
-            border: '1px solid rgba(255,77,106,0.2)', color: '#FF4D6A',
-            fontSize: '14px', fontWeight: 600, cursor: 'pointer',
-          }}
-        >
-          <LogoutIcon />
-          Sair da Conta
-        </button>
-      </div>
+      {/* Cuts grid (reels-style vertical) */}
+      {activeTab === 'cuts' && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '2px' }}>
+          {mockCutThumbnails.map((img, i) => (
+            <div key={i} style={{
+              aspectRatio: '9/16', backgroundImage: `url(${img})`,
+              backgroundSize: 'cover', backgroundPosition: 'center',
+              borderRadius: '4px', cursor: 'pointer', position: 'relative', overflow: 'hidden',
+            }}>
+              <div style={{
+                position: 'absolute', bottom: 0, left: 0, right: 0, padding: '8px',
+                background: 'linear-gradient(transparent, rgba(0,0,0,0.7))',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <svg width={12} height={12} viewBox="0 0 24 24" fill="#fff" stroke="none"><polygon points="5 3 19 12 5 21 5 3" /></svg>
+                  <span style={{ fontSize: '11px', color: '#fff', fontWeight: 600 }}>{(Math.random() * 5 + 1).toFixed(1)}k</span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
+      {/* Records */}
+      {activeTab === 'records' && (
+        <div style={{ background: '#141420', borderRadius: '14px', border: '1px solid rgba(148,148,172,0.08)', overflow: 'hidden', marginTop: '8px' }}>
+          {p.records.map((r, i) => (
+            <div key={r.id} style={{
+              display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px',
+              borderBottom: i < p.records.length - 1 ? '1px solid rgba(148,148,172,0.06)' : 'none',
+            }}>
+              <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(255,184,0,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <TrophySmIcon active={false} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ fontSize: '13px', fontWeight: 600, color: '#F0F0F8' }}>{r.exercise}</span>
+                  {r.isNew && <span style={{ fontSize: '8px', fontWeight: 800, background: '#CCFF00', color: '#0A0A0F', padding: '1px 5px', borderRadius: '3px' }}>NOVO</span>}
+                </div>
+                <div style={{ fontSize: '11px', color: '#9494AC', marginTop: '1px' }}>
+                  {r.previousValue} → <span style={{ color: '#CCFF00', fontWeight: 600 }}>{r.currentValue}</span>
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                <TrendUpIcon />
+                <span style={{ fontSize: '12px', fontWeight: 700, color: '#10B981' }}>{r.improvement}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Achievements grid */}
+      {activeTab === 'achievements' && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px', marginTop: '8px' }}>
+          {p.achievements.map(a => {
+            const color = rarityColors[a.rarity];
+            return (
+              <div key={a.id} style={{
+                background: '#141420', borderRadius: '12px', border: `1px solid ${a.unlocked ? `${color}30` : 'rgba(148,148,172,0.08)'}`,
+                padding: '14px', opacity: a.unlocked ? 1 : 0.6,
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+                  <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: `${color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {achieveIcons[a.icon] || <MedalIcon active={false} />}
+                  </div>
+                  <span style={{ fontSize: '8px', fontWeight: 700, color, textTransform: 'uppercase' }}>{a.rarity}</span>
+                </div>
+                <div style={{ fontSize: '12px', fontWeight: 700, color: '#F0F0F8', marginBottom: '2px' }}>{a.title}</div>
+                <div style={{ fontSize: '10px', color: '#5C5C72', lineHeight: 1.4 }}>{a.description}</div>
+                {!a.unlocked && a.progress !== undefined && (
+                  <div style={{ marginTop: '6px' }}>
+                    <div style={{ height: '3px', borderRadius: '2px', background: '#1A1A28' }}>
+                      <div style={{ height: '100%', width: `${a.progress}%`, borderRadius: '2px', background: color }} />
+                    </div>
+                    <div style={{ fontSize: '9px', color: '#5C5C72', marginTop: '2px' }}>{a.progress}%</div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Member since */}
       <div style={{ textAlign: 'center', marginTop: '24px', fontSize: '11px', color: '#5C5C72' }}>
         Membro desde {new Date(p.memberSince).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
       </div>
 
-      {/* Hidden admin panel - Ctrl+Shift+A */}
       {showAdmin && isAdmin && <AdminPanel onClose={() => setShowAdmin(false)} />}
     </div>
   );
