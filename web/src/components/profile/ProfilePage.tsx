@@ -442,6 +442,13 @@ export default function ProfilePage() {
         }}>
           Ver Perfil Público
         </Link>
+        <Link href="/settings" style={{
+          textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+          padding: '14px', borderRadius: '12px', background: '#141420', border: '1px solid rgba(148,148,172,0.08)',
+          color: '#9494AC', fontSize: '14px', fontWeight: 600,
+        }}>
+          Configurações
+        </Link>
         <button
           onClick={() => { if (confirm('Tem certeza que deseja sair?')) logout(); }}
           style={{

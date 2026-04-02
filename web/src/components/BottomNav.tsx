@@ -50,7 +50,7 @@ function ProfileIcon({ active }: { active: boolean }) {
 
 const navItems = [
   { href: '/', label: 'Feed', icon: (a: boolean) => <HomeIcon active={a} /> },
-  { href: '/exercises', label: 'Explorar', icon: (a: boolean) => <ExerciseIcon active={a} /> },
+  { href: '/explore', label: 'Explorar', icon: (a: boolean) => <ExerciseIcon active={a} /> },
   { href: '/workout', label: 'Treinar', icon: (_a: boolean) => <WorkoutIcon />, isCenter: true },
   { href: '/ranking', label: 'Ranking', icon: (a: boolean) => <RankingIcon active={a} /> },
   { href: '/profile', label: 'Perfil', icon: (a: boolean) => <ProfileIcon active={a} /> },
