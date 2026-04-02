@@ -45,10 +45,14 @@ export default function AdminPanelPage() {
         apiFetch('/api/admin/users'),
         apiFetch('/api/admin/dashboard'),
       ]);
-      if (usersRes.ok) setUsers(await usersRes.json());
+      if (usersRes.ok) {
+        const data = await usersRes.json();
+        setUsers(Array.isArray(data) ? data : data.users || []);
+      }
       if (statsRes.ok) {
         const d = await statsRes.json();
-        setStats({ totalUsers: d.totalUsers || 0, totalExercises: d.totalExercises || 0, totalWorkouts: d.totalWorkouts || 0, totalPosts: d.totalPosts || 0, totalConversations: d.totalConversations || 0 });
+        const s = d.stats || d;
+        setStats({ totalUsers: s.totalUsers || 0, totalExercises: s.totalExercises || 0, totalWorkouts: s.totalWorkouts || 0, totalPosts: s.totalPosts || 0, totalConversations: 0 });
       }
     } catch { /* ignore */ }
     setLoading(false);

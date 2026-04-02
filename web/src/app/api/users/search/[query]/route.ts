@@ -8,9 +8,6 @@ export async function GET(
 ) {
   try {
     const user = await getAuthUser(request);
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
 
     const { query } = await params;
 
@@ -23,7 +20,7 @@ export async function GET(
 
     const users = await prisma.user.findMany({
       where: {
-        id: { not: user.id },
+        ...(user ? { id: { not: user.id } } : {}),
         OR: [
           { username: { contains: query, mode: 'insensitive' } },
           { displayName: { contains: query, mode: 'insensitive' } },
