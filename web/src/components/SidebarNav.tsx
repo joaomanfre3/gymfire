@@ -51,7 +51,7 @@ function MessageIcon({ active }: { active: boolean }) {
 const navItems = [
   { href: '/', label: 'Feed', icon: (a: boolean) => <HomeIcon active={a} /> },
   { href: '/explore', label: 'Explorar', icon: (a: boolean) => <SearchIcon active={a} /> },
-  { href: '/drops', label: 'Drops', icon: (a: boolean) => <DumbbellIcon active={a} /> },
+  { href: '/cuts', label: 'Cuts', icon: (a: boolean) => <DumbbellIcon active={a} /> },
   { href: '/messages', label: 'Mensagens', icon: (a: boolean) => <MessageIcon active={a} /> },
 ];
 

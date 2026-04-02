@@ -485,6 +485,7 @@ enum PostType {
   RECIPE
   TIP
   CHALLENGE
+  CUT
 }
 
 enum Visibility {

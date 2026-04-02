@@ -33,11 +33,11 @@ export default function CreateModal({ open, onClose }: Props) {
     },
     {
       icon: <FilmIcon />,
-      title: 'Drop',
-      description: 'Foto ou video 24h',
+      title: 'Cut',
+      description: 'Gravar video curto',
       color: '#00D4FF',
       borderColor: 'rgba(0, 212, 255, 0.25)',
-      onClick: () => { onClose(); router.push('/?drop=create'); },
+      onClick: () => { onClose(); router.push('/cuts/create'); },
     },
     {
       icon: <DumbbellIcon />,
