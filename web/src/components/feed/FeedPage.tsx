@@ -8,7 +8,7 @@ import type { FeedPost } from '@/lib/feed-types';
 import { mockPosts, mockStories, mockSuggestions, mockChallenges } from '@/lib/feed-mock-data';
 import StoriesBar from './StoriesBar';
 import CreatePostBox from './CreatePostBox';
-import FeedFilters from './FeedFilters';
+// FeedFilters removed
 import PostCard from './PostCard';
 import PostSkeleton from './PostSkeleton';
 import SidebarRight from './SidebarRight';
@@ -16,7 +16,6 @@ import SidebarRight from './SidebarRight';
 export default function FeedPage() {
   const [posts, setPosts] = useState<FeedPost[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('all');
   const [loggedIn, setLoggedIn] = useState(false);
 
   useEffect(() => {
@@ -101,9 +100,7 @@ export default function FeedPage() {
     } catch { /* ignore */ }
   }, []);
 
-  const filteredPosts = filter === 'all'
-    ? posts
-    : posts.filter(p => p.type === filter);
+  const filteredPosts = posts;
 
   return (
     <div style={{
@@ -121,7 +118,6 @@ export default function FeedPage() {
       }}>
         <StoriesBar stories={mockStories} />
         <CreatePostBox />
-        <FeedFilters active={filter} onChange={setFilter} />
 
         {/* Hero for non-logged users */}
         {!loggedIn && (
@@ -186,11 +182,9 @@ export default function FeedPage() {
             color: '#5C5C72',
           }}>
             <p style={{ fontSize: '14px' }}>
-              {filter !== 'all'
-                ? 'Nenhum post encontrado com este filtro.'
-                : loggedIn
-                  ? 'Nenhum post ainda. Inicie um treino para compartilhar!'
-                  : 'Nenhum post público ainda.'}
+              {loggedIn
+                ? 'Nenhum post ainda. Inicie um treino para compartilhar!'
+                : 'Nenhum post público ainda.'}
             </p>
           </div>
         ) : (
