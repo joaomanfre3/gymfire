@@ -5,8 +5,8 @@ import Link from 'next/link';
 import { getToken, apiFetch } from '@/lib/api';
 import { usePusherChannel } from '@/hooks/usePusher';
 import type { FeedPost } from '@/lib/feed-types';
-import { mockPosts, mockStories, mockSuggestions, mockChallenges } from '@/lib/feed-mock-data';
-import StoriesBar from './StoriesBar';
+import { mockPosts, mockSuggestions, mockChallenges } from '@/lib/feed-mock-data';
+import DropsBar from './DropsBar';
 import CreatePostBox from './CreatePostBox';
 // FeedFilters removed
 import PostCard from './PostCard';
@@ -116,7 +116,7 @@ export default function FeedPage() {
         width: '100%',
         maxWidth: '470px',
       }}>
-        <StoriesBar stories={mockStories} />
+        <DropsBar />
         <CreatePostBox />
 
         {/* Hero for non-logged users */}

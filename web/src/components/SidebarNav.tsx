@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { getToken, getUser, logout } from '@/lib/api';
+import CreateModal from './CreateModal';
 
 // SVG Icons
 function FireLogo() {
@@ -50,7 +51,7 @@ function MessageIcon({ active }: { active: boolean }) {
 const navItems = [
   { href: '/', label: 'Feed', icon: (a: boolean) => <HomeIcon active={a} /> },
   { href: '/explore', label: 'Explorar', icon: (a: boolean) => <SearchIcon active={a} /> },
-  { href: '/reels', label: 'Reels', icon: (a: boolean) => <DumbbellIcon active={a} /> },
+  { href: '/drops', label: 'Drops', icon: (a: boolean) => <DumbbellIcon active={a} /> },
   { href: '/messages', label: 'Mensagens', icon: (a: boolean) => <MessageIcon active={a} /> },
 ];
 
@@ -58,6 +59,7 @@ export default function SidebarNav() {
   const pathname = usePathname();
   const [user, setUser] = useState<{ displayName?: string; username?: string } | null>(null);
   const [loggedIn, setLoggedIn] = useState(false);
+  const [showCreate, setShowCreate] = useState(false);
 
   useEffect(() => {
     setLoggedIn(!!getToken());
@@ -69,6 +71,7 @@ export default function SidebarNav() {
   const isActive = (href: string) => href === '/' ? pathname === '/' : pathname?.startsWith(href);
 
   return (
+    <>
     <aside className="sidebar-nav" style={{
       position: 'fixed', left: 0, top: 0, bottom: 0,
       width: '220px', background: '#0A0A0F',
@@ -108,15 +111,15 @@ export default function SidebarNav() {
           );
         })}
 
-        {/* Create post */}
-        <Link href="/workout" style={{
-          textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '14px',
+        {/* Create button */}
+        <button onClick={() => setShowCreate(true)} style={{
+          background: 'none', border: 'none', display: 'flex', alignItems: 'center', gap: '14px',
           padding: '12px 14px', borderRadius: '12px',
           color: '#9494AC', fontSize: '15px', fontWeight: 500,
-          transition: 'all 200ms', marginTop: '4px',
+          cursor: 'pointer', transition: 'all 200ms', marginTop: '4px', width: '100%', textAlign: 'left',
         }}>
           <PlusIcon /> Criar
-        </Link>
+        </button>
       </nav>
 
       {/* Bottom: Profile + Settings */}
@@ -162,5 +165,7 @@ export default function SidebarNav() {
         )}
       </div>
     </aside>
+    <CreateModal open={showCreate} onClose={() => setShowCreate(false)} />
+    </>
   );
 }

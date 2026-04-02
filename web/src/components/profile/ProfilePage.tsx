@@ -88,7 +88,12 @@ const mockCutThumbnails = [
   'https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=300&h=500&fit=crop',
 ];
 
-type ProfileTab = 'posts' | 'cuts' | 'records' | 'achievements';
+function CalendarIcon({ active }: { active: boolean }) {
+  const c = active ? '#F0F0F8' : '#5C5C72';
+  return <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth={1.5}><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /><rect x="7" y="14" width="3" height="3" rx="0.5" fill={active ? c : 'none'} /><rect x="14" y="14" width="3" height="3" rx="0.5" fill={active ? c : 'none'} /></svg>;
+}
+
+type ProfileTab = 'posts' | 'cuts' | 'records' | 'achievements' | 'routine';
 
 export default function ProfilePage() {
   const [profile, setProfile] = useState<ProfileData | null>(null);
@@ -96,6 +101,9 @@ export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState<ProfileTab>('posts');
   const [showAdmin, setShowAdmin] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [weight, setWeight] = useState('75');
+  const [height, setHeight] = useState('175');
+  const [editingBody, setEditingBody] = useState(false);
 
   useEffect(() => {
     const user = getUser();
@@ -153,6 +161,7 @@ export default function ProfilePage() {
     { key: 'cuts', icon: (a) => <FilmIcon active={a} />, label: 'Cuts' },
     { key: 'records', icon: (a) => <TrophySmIcon active={a} />, label: 'Records' },
     { key: 'achievements', icon: (a) => <MedalIcon active={a} />, label: 'Conquistas' },
+    { key: 'routine', icon: (a) => <CalendarIcon active={a} />, label: 'Rotina' },
   ];
 
   return (
@@ -404,6 +413,121 @@ export default function ProfilePage() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Routine tab */}
+      {activeTab === 'routine' && (
+        <div style={{ marginTop: '8px' }}>
+          {/* Weight/Height card */}
+          <div style={{
+            background: '#141420', borderRadius: '14px', border: '1px solid rgba(148,148,172,0.08)',
+            padding: '16px', marginBottom: '12px',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+              <span style={{ fontSize: '13px', fontWeight: 700, color: '#5C5C72', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Medidas Corporais</span>
+              <button onClick={() => setEditingBody(!editingBody)} style={{
+                background: 'none', border: 'none', color: '#FF6B35', fontSize: '12px', fontWeight: 600, cursor: 'pointer',
+              }}>{editingBody ? 'Salvar' : 'Editar'}</button>
+            </div>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <div style={{ flex: 1, background: '#0E0E16', borderRadius: '12px', padding: '14px', textAlign: 'center', border: '1px solid rgba(148,148,172,0.06)' }}>
+                <div style={{ fontSize: '10px', fontWeight: 600, color: '#5C5C72', textTransform: 'uppercase', marginBottom: '6px' }}>Peso</div>
+                {editingBody ? (
+                  <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: '4px' }}>
+                    <input type="number" value={weight} onChange={e => setWeight(e.target.value)}
+                      style={{ width: '60px', background: 'transparent', border: 'none', borderBottom: '2px solid #FF6B35', color: '#F0F0F8', fontSize: '22px', fontWeight: 800, textAlign: 'center', outline: 'none' }} />
+                    <span style={{ fontSize: '13px', color: '#5C5C72' }}>kg</span>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: '4px' }}>
+                    <span style={{ fontSize: '22px', fontWeight: 800, color: '#F0F0F8' }}>{weight}</span>
+                    <span style={{ fontSize: '13px', color: '#5C5C72' }}>kg</span>
+                  </div>
+                )}
+              </div>
+              <div style={{ flex: 1, background: '#0E0E16', borderRadius: '12px', padding: '14px', textAlign: 'center', border: '1px solid rgba(148,148,172,0.06)' }}>
+                <div style={{ fontSize: '10px', fontWeight: 600, color: '#5C5C72', textTransform: 'uppercase', marginBottom: '6px' }}>Altura</div>
+                {editingBody ? (
+                  <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: '4px' }}>
+                    <input type="number" value={height} onChange={e => setHeight(e.target.value)}
+                      style={{ width: '60px', background: 'transparent', border: 'none', borderBottom: '2px solid #FF6B35', color: '#F0F0F8', fontSize: '22px', fontWeight: 800, textAlign: 'center', outline: 'none' }} />
+                    <span style={{ fontSize: '13px', color: '#5C5C72' }}>cm</span>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: '4px' }}>
+                    <span style={{ fontSize: '22px', fontWeight: 800, color: '#F0F0F8' }}>{height}</span>
+                    <span style={{ fontSize: '13px', color: '#5C5C72' }}>cm</span>
+                  </div>
+                )}
+              </div>
+              <div style={{ flex: 1, background: '#0E0E16', borderRadius: '12px', padding: '14px', textAlign: 'center', border: '1px solid rgba(148,148,172,0.06)' }}>
+                <div style={{ fontSize: '10px', fontWeight: 600, color: '#5C5C72', textTransform: 'uppercase', marginBottom: '6px' }}>IMC</div>
+                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: '4px' }}>
+                  <span style={{ fontSize: '22px', fontWeight: 800, color: '#CCFF00' }}>
+                    {(Number(weight) / Math.pow(Number(height) / 100, 2)).toFixed(1)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Activity rings compact */}
+          <div style={{
+            background: '#141420', borderRadius: '14px', border: '1px solid rgba(148,148,172,0.08)',
+            padding: '14px', marginBottom: '12px', display: 'flex', justifyContent: 'space-around',
+          }}>
+            <ActivityRing label="Cal" current={p.activityRings.calories.current} goal={p.activityRings.calories.goal} color="#FF6B35" size={48} />
+            <ActivityRing label="Treino" current={p.activityRings.workouts.current} goal={p.activityRings.workouts.goal} color="#00D4FF" size={48} />
+            <ActivityRing label="Tempo" current={p.activityRings.activeTime.current} goal={p.activityRings.activeTime.goal} color="#A855F7" size={48} />
+            <ActivityRing label="Água" current={p.activityRings.hydration.current} goal={p.activityRings.hydration.goal} color="#10B981" size={48} />
+          </div>
+
+          {/* Routines section header */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+            <span style={{ fontSize: '13px', fontWeight: 700, color: '#5C5C72', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Minhas Rotinas</span>
+            <Link href="/routines/new" style={{
+              textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px',
+              fontSize: '12px', fontWeight: 600, color: '#FF6B35',
+            }}>
+              + Nova Rotina
+            </Link>
+          </div>
+
+          {/* Routine cards from history */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {p.history.slice(0, 5).map(h => (
+              <div key={h.id} style={{
+                background: '#141420', borderRadius: '12px', border: '1px solid rgba(148,148,172,0.08)',
+                padding: '14px 16px',
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                  <span style={{ fontSize: '14px', fontWeight: 600, color: '#F0F0F8' }}>{h.name}</span>
+                  <span style={{ fontSize: '11px', color: '#5C5C72' }}>{h.duration}</span>
+                </div>
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '8px' }}>
+                  {h.exercises.slice(0, 4).map(e => (
+                    <span key={e} style={{ fontSize: '10px', background: 'rgba(255,107,53,0.08)', color: '#FF8050', padding: '2px 8px', borderRadius: '4px', fontWeight: 500 }}>{e}</span>
+                  ))}
+                </div>
+                <div style={{ display: 'flex', gap: '12px', fontSize: '11px', color: '#5C5C72' }}>
+                  <span>{h.volume}</span>
+                  <span>{h.sets} séries</span>
+                  <span>{h.calories} cal</span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Link to full routines page */}
+          <Link href="/routines" style={{
+            textDecoration: 'none', display: 'block', textAlign: 'center',
+            padding: '14px', borderRadius: '12px', marginTop: '12px',
+            background: '#141420', border: '1px solid rgba(148,148,172,0.08)',
+            color: '#9494AC', fontSize: '13px', fontWeight: 600,
+          }}>
+            Ver todas as rotinas
+          </Link>
         </div>
       )}
 
