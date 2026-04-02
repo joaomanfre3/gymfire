@@ -227,10 +227,11 @@ export default function ProfilePage() {
 
       {/* Action buttons */}
       <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
-        <button style={{
+        <Link href="/settings/edit-profile" style={{
           flex: 1, padding: '8px', borderRadius: '8px', border: 'none',
           background: '#141420', color: '#F0F0F8', fontSize: '13px', fontWeight: 600, cursor: 'pointer',
-        }}>Editar perfil</button>
+          textDecoration: 'none', textAlign: 'center', display: 'block',
+        }}>Editar perfil</Link>
         <button style={{
           flex: 1, padding: '8px', borderRadius: '8px', border: 'none',
           background: '#141420', color: '#F0F0F8', fontSize: '13px', fontWeight: 600, cursor: 'pointer',
