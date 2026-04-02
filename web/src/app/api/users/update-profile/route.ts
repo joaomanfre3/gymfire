@@ -37,14 +37,15 @@ export async function PUT(request: Request) {
     }
 
     // Update user
+    const updateData: Record<string, string> = {};
+    if (displayName) updateData.displayName = displayName;
+    if (username) updateData.username = username.toLowerCase();
+    if (bio !== undefined) updateData.bio = bio;
+    if (avatarUrl) updateData.avatarUrl = avatarUrl;
+
     const updated = await prisma.user.update({
       where: { id: user.id },
-      data: {
-        ...(displayName !== undefined && { displayName }),
-        ...(username !== undefined && { username: username.toLowerCase() }),
-        ...(bio !== undefined && { bio }),
-        ...(avatarUrl !== undefined && { avatarUrl }),
-      },
+      data: updateData,
       select: {
         id: true,
         username: true,

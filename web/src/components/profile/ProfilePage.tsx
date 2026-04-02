@@ -195,9 +195,6 @@ export default function ProfilePage() {
             <span style={{ fontSize: '18px', fontWeight: 700, color: '#F0F0F8' }}>{p.username}</span>
             {p.isVerified && <span style={{ fontSize: '10px', fontWeight: 800, background: '#FF6B35', color: '#0A0A0F', padding: '2px 6px', borderRadius: '4px' }}>PRO</span>}
             <span style={{ fontSize: '10px', fontWeight: 700, color: p.tier.color, background: `${p.tier.color}15`, padding: '2px 8px', borderRadius: '4px' }}>{p.tier.name}</span>
-            <Link href="/settings" style={{ marginLeft: 'auto', textDecoration: 'none' }}>
-              <SettingsIcon />
-            </Link>
           </div>
 
           {/* Stats row */}

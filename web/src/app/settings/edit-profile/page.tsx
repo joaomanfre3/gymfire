@@ -122,16 +122,26 @@ export default function EditProfilePage() {
 
   const canSave = displayName.length >= 2 && username.length >= 3 && usernameStatus !== 'taken' && usernameStatus !== 'checking' && usernameStatus !== 'invalid';
 
+  const [saveError, setSaveError] = useState('');
+
   const handleSave = async () => {
     if (!canSave || saving) return;
 
     setSaving(true);
     setSaved(false);
+    setSaveError('');
 
     try {
+      const body: Record<string, string | undefined> = {
+        displayName,
+        username,
+        bio,
+      };
+      if (avatarUrl) body.avatarUrl = avatarUrl;
+
       const res = await apiFetch('/api/users/update-profile', {
         method: 'PUT',
-        body: JSON.stringify({ displayName, username, bio, avatarUrl: avatarUrl || undefined }),
+        body: JSON.stringify(body),
       });
 
       if (res.ok) {
@@ -150,11 +160,15 @@ export default function EditProfilePage() {
         setSaved(true);
         setTimeout(() => setSaved(false), 3000);
       } else {
-        const err = await res.json();
-        setUsernameError(err.error || 'Erro ao salvar');
+        let errorMsg = 'Erro ao salvar';
+        try {
+          const err = await res.json();
+          errorMsg = err.error || errorMsg;
+        } catch { /* ignore parse error */ }
+        setSaveError(errorMsg);
       }
     } catch {
-      setUsernameError('Erro de conexão');
+      setSaveError('Erro de conexão. Verifique sua internet.');
     }
 
     setSaving(false);
@@ -370,6 +384,16 @@ export default function EditProfilePage() {
         >
           {saving ? 'Salvando...' : 'Salvar alterações'}
         </button>
+
+        {saveError && (
+          <div style={{
+            marginTop: '12px', padding: '12px 16px', borderRadius: '10px',
+            background: 'rgba(255, 77, 106, 0.08)', border: '1px solid rgba(255, 77, 106, 0.2)',
+            color: '#FF4D6A', fontSize: '13px', fontWeight: 600, textAlign: 'center',
+          }}>
+            {saveError}
+          </div>
+        )}
       </main>
     </div>
   );
