@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { getToken, apiFetch } from '@/lib/api';
+import { usePusherChannel } from '@/hooks/usePusher';
 import type { FeedPost } from '@/lib/feed-types';
 import { mockPosts, mockStories, mockSuggestions, mockChallenges } from '@/lib/feed-mock-data';
 import StoriesBar from './StoriesBar';
@@ -86,6 +87,12 @@ export default function FeedPage() {
     if (h > 0) return `${h}h ${m}m`;
     return `${m}min`;
   }
+
+  // Real-time: listen for new posts and reload feed
+  const handleNewPost = useCallback(() => {
+    loadFeed();
+  }, []);
+  usePusherChannel('feed', 'new-post', handleNewPost, !loading);
 
   const handleLike = useCallback(async (postId: string) => {
     if (!getToken()) return;

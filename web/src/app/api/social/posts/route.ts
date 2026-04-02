@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getAuthUser } from '@/lib/auth';
+import { triggerEvent, CHANNELS, EVENTS } from '@/lib/pusher-server';
 
 export async function POST(request: Request) {
   try {
@@ -37,6 +38,14 @@ export async function POST(request: Request) {
           },
         },
       },
+    });
+
+    // Trigger real-time event for new post
+    triggerEvent(CHANNELS.FEED, EVENTS.NEW_POST, {
+      postId: post.id,
+      userId: user.id,
+      username: user.username,
+      displayName: user.displayName,
     });
 
     return NextResponse.json(post, { status: 201 });

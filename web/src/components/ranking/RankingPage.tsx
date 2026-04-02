@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { apiFetch } from '@/lib/api';
+import { usePusherChannel } from '@/hooks/usePusher';
 import type { RankingUser, RankingPeriod, RankingCategory } from '@/lib/ranking-types';
 import { getUserStatValue } from '@/lib/ranking-types';
 import { mockRankingUsers } from '@/lib/ranking-mock-data';
@@ -31,25 +32,29 @@ export default function RankingPage() {
       if (res.ok) {
         const data = await res.json();
         if (data && data.length > 0) {
-          const mapped: RankingUser[] = data.map((entry: Record<string, unknown>, i: number) => ({
-            id: (entry.id as string) || `api-${i}`,
-            name: (entry.displayName as string) || 'Usuário',
-            username: (entry.username as string) || 'user',
-            avatar: (entry.avatarUrl as string) || `https://i.pravatar.cc/96?u=${i}`,
-            isVerified: false,
-            level: Math.max(1, Math.floor(((entry.totalPoints as number) || 0) / 500)),
-            levelProgress: Math.floor(Math.random() * 100),
-            position: (entry.rank as number) || i + 1,
-            positionChange: 0,
-            stats: {
-              xp: ((period === 'weekly' ? entry.weeklyPoints : entry.totalPoints) as number) || 0,
-              workouts: Math.floor(Math.random() * 100) + 10,
-              volume: Math.floor(Math.random() * 200000) + 30000,
-              distance: Math.floor(Math.random() * 500),
-              streak: Math.floor(Math.random() * 30) + 1,
-              prs: Math.floor(Math.random() * 15),
-            },
-          }));
+          const mapped: RankingUser[] = data.map((entry: Record<string, unknown>, i: number) => {
+            const totalPts = (entry.totalPoints as number) || 0;
+            const level = Math.max(1, Math.floor(totalPts / 500));
+            return {
+              id: (entry.id as string) || `api-${i}`,
+              name: (entry.displayName as string) || 'Usuário',
+              username: (entry.username as string) || 'user',
+              avatar: (entry.avatarUrl as string) || `https://i.pravatar.cc/96?u=${i}`,
+              isVerified: (entry.isVerified as boolean) || false,
+              level,
+              levelProgress: Math.round((totalPts % 500) / 5),
+              position: (entry.rank as number) || i + 1,
+              positionChange: 0,
+              stats: {
+                xp: ((period === 'weekly' ? entry.weeklyPoints : entry.totalPoints) as number) || 0,
+                workouts: (entry.workoutsCount as number) || 0,
+                volume: (entry.workoutsCount as number || 0) * 2500, // estimate
+                distance: Math.floor(Math.random() * 500),
+                streak: (entry.currentStreak as number) || 0,
+                prs: Math.floor(Math.random() * 15),
+              },
+            };
+          });
           setUsers(mapped);
           setLoading(false);
           return;
@@ -59,6 +64,12 @@ export default function RankingPage() {
     setUsers(mockRankingUsers);
     setLoading(false);
   }
+
+  // Real-time: listen for ranking updates
+  const handleRankingUpdate = useCallback(() => {
+    loadRanking();
+  }, []);
+  usePusherChannel('ranking', 'ranking-update', handleRankingUpdate, !loading);
 
   // Sort by selected category
   const sortedUsers = useMemo(() => {

@@ -14,6 +14,14 @@ export async function GET(request: Request) {
           displayName: true,
           avatarUrl: true,
           totalPoints: true,
+          currentStreak: true,
+          isVerified: true,
+          _count: {
+            select: {
+              workouts: true,
+              followers: true,
+            },
+          },
         },
         orderBy: { totalPoints: 'desc' },
         take: 100,
@@ -21,13 +29,21 @@ export async function GET(request: Request) {
 
       const ranking = users.map((u, index) => ({
         rank: index + 1,
-        ...u,
+        id: u.id,
+        username: u.username,
+        displayName: u.displayName,
+        avatarUrl: u.avatarUrl,
+        totalPoints: u.totalPoints,
+        currentStreak: u.currentStreak,
+        isVerified: u.isVerified,
+        workoutsCount: u._count.workouts,
+        followersCount: u._count.followers,
       }));
 
       return NextResponse.json(ranking);
     }
 
-    // Weekly ranking: sum points from this ISO week
+    // Weekly ranking
     const now = new Date();
     const dayOfWeek = now.getDay();
     const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
@@ -65,16 +81,32 @@ export async function GET(request: Request) {
         username: true,
         displayName: true,
         avatarUrl: true,
+        totalPoints: true,
+        currentStreak: true,
+        isVerified: true,
+        _count: {
+          select: { workouts: true },
+        },
       },
     });
 
     const userMap = new Map(users.map((u) => [u.id, u]));
 
-    const ranking = weeklyPoints.map((wp, index) => ({
-      rank: index + 1,
-      ...userMap.get(wp.userId),
-      weeklyPoints: wp._sum.amount ?? 0,
-    }));
+    const ranking = weeklyPoints.map((wp, index) => {
+      const user = userMap.get(wp.userId);
+      return {
+        rank: index + 1,
+        id: user?.id,
+        username: user?.username,
+        displayName: user?.displayName,
+        avatarUrl: user?.avatarUrl,
+        totalPoints: user?.totalPoints ?? 0,
+        weeklyPoints: wp._sum.amount ?? 0,
+        currentStreak: user?.currentStreak ?? 0,
+        isVerified: user?.isVerified ?? false,
+        workoutsCount: user?._count.workouts ?? 0,
+      };
+    });
 
     return NextResponse.json(ranking);
   } catch (error) {

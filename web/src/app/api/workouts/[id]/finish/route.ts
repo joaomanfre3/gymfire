@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getAuthUser } from '@/lib/auth';
 import { getStreakMultiplier, calculateWorkoutPoints } from '@/lib/points';
+import { triggerEvent, CHANNELS, EVENTS } from '@/lib/pusher-server';
 
 export async function POST(
   request: Request,
@@ -153,6 +154,23 @@ export async function POST(
         },
       }),
     ]);
+
+    // Trigger real-time events
+    triggerEvent(CHANNELS.FEED, EVENTS.WORKOUT_FINISHED, {
+      userId: user.id,
+      username: user.username,
+      displayName: user.displayName,
+      workoutTitle: finishedWorkout.title,
+      totalVolume,
+      durationSecs,
+      pointsEarned,
+    });
+
+    triggerEvent(CHANNELS.RANKING, EVENTS.RANKING_UPDATE, {
+      userId: user.id,
+      pointsEarned,
+      newTotal: user.totalPoints + pointsEarned,
+    });
 
     return NextResponse.json(finishedWorkout);
   } catch (error) {

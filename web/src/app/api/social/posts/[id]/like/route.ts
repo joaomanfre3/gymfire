@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getAuthUser } from '@/lib/auth';
+import { triggerEvent, CHANNELS, EVENTS } from '@/lib/pusher-server';
 
 export async function POST(
   request: Request,
@@ -45,6 +46,13 @@ export async function POST(
     await prisma.post.update({
       where: { id },
       data: { likesCount: { increment: 1 } },
+    });
+
+    // Trigger real-time event
+    triggerEvent(CHANNELS.FEED, EVENTS.NEW_LIKE, {
+      postId: id,
+      userId: user.id,
+      username: user.username,
     });
 
     return NextResponse.json(like, { status: 201 });
