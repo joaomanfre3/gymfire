@@ -257,6 +257,16 @@ div:hover > .carousel-nav {
   }
 }
 
+/* Bottom Nav - mobile only */
+@media (max-width: 768px) {
+  .bottom-nav {
+    display: flex !important;
+  }
+  body {
+    padding-bottom: 56px;
+  }
+}
+
 /* Ranking animations */
 @keyframes rowSlideIn {
   from { opacity: 0; transform: translateX(-8px); }

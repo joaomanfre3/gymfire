@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import BottomNavWrapper from '@/components/BottomNavWrapper';
 
 export const metadata: Metadata = {
   title: 'GymFire',
@@ -13,8 +14,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt-BR">
-      <body className="min-h-screen" style={{ background: 'var(--background)', color: 'var(--text)' }}>
+      <body className="min-h-screen" style={{ background: '#0A0A0F', color: '#F0F0F8' }}>
         {children}
+        <BottomNavWrapper />
       </body>
     </html>
   );
