@@ -206,7 +206,7 @@ body > * {
 .mobile-menu-btn { display: none !important; }
 @media (max-width: 768px) {
   .desktop-nav { display: none !important; }
-  .mobile-menu-btn { display: block !important; }
+  .mobile-menu-btn { display: flex !important; }
 }
 
 /* Feed-specific styles */

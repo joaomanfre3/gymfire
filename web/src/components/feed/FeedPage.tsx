@@ -6,8 +6,6 @@ import { getToken, apiFetch } from '@/lib/api';
 import { usePusherChannel } from '@/hooks/usePusher';
 import type { FeedPost } from '@/lib/feed-types';
 import DropsBar from './DropsBar';
-import CreatePostBox from './CreatePostBox';
-// FeedFilters removed
 import PostCard from './PostCard';
 import PostSkeleton from './PostSkeleton';
 import SidebarRight from './SidebarRight';
@@ -114,7 +112,6 @@ export default function FeedPage() {
         maxWidth: '470px',
       }}>
         <DropsBar />
-        <CreatePostBox />
 
         {/* Hero for non-logged users */}
         {!loggedIn && (
