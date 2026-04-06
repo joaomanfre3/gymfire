@@ -57,7 +57,6 @@ model User {
   highlights      Highlight[]
   notifications   Notification[]
   badges          UserBadge[]
-  achievements    UserAchievement[]
   blocked         Block[]           @relation("blocker")
   blockedBy       Block[]           @relation("blocked")
   reports         Report[]
@@ -683,11 +682,19 @@ model Message {
   mediaType      MediaType?   @map("media_type")
   type           MessageType  @default(TEXT)
   replyToId      String?      @map("reply_to_id")
+  replyTo        Message?     @relation("replies", fields: [replyToId], references: [id], onDelete: SetNull)
+  replies        Message[]    @relation("replies")
   isEdited       Boolean      @default(false) @map("is_edited")
+  editedAt       DateTime?    @map("edited_at")
   isDeleted      Boolean      @default(false) @map("is_deleted")
+  deletedForAll  Boolean      @default(false) @map("deleted_for_all")
+  deletedForUserIds String[]  @map("deleted_for_user_ids")
   workoutRef     String?      @map("workout_ref")
   exerciseRef    String?      @map("exercise_ref")
   postRef        String?      @map("post_ref")
+  audioDuration  Float?       @map("audio_duration")
+  fileName       String?      @map("file_name")
+  fileSize       Int?         @map("file_size")
   createdAt      DateTime     @default(now()) @map("created_at")
   readBy         MessageRead[]
 
@@ -800,33 +807,6 @@ model UserBadge {
   @@map("user_badges")
 }
 
-model Achievement {
-  id          String              @id @default(cuid())
-  name        String
-  description String
-  iconUrl     String              @map("icon_url")
-  points      Int
-  category    AchievementCategory
-  condition   Json
-  users       UserAchievement[]
-
-  @@map("achievements")
-}
-
-model UserAchievement {
-  id            String      @id @default(cuid())
-  userId        String      @map("user_id")
-  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  achievementId String      @map("achievement_id")
-  achievement   Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
-  progress      Float       @default(0)
-  isComplete    Boolean     @default(false) @map("is_complete")
-  completedAt   DateTime?   @map("completed_at")
-
-  @@unique([userId, achievementId])
-  @@map("user_achievements")
-}
-
 enum Rarity {
   COMMON
   UNCOMMON
@@ -842,14 +822,6 @@ enum BadgeCategory {
   CHALLENGE
   MILESTONE
   SPECIAL
-}
-
-enum AchievementCategory {
-  STRENGTH
-  CONSISTENCY
-  SOCIAL
-  EXPLORER
-  ELITE
 }
 
 // ============================================================

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { apiFetch, getToken, getUser, logout } from '@/lib/api';
 import AdminPanel from './AdminPanel';
 import RoutineTab from './RoutineTab';
-import type { ProfileData, AchievementEntry } from '@/lib/profile-types';
+import type { ProfileData } from '@/lib/profile-types';
 import { getTier } from '@/lib/profile-types';
 
 // ======== ICONS ========
@@ -24,18 +24,12 @@ function TrophySmIcon({ active }: { active: boolean }) {
   const c = active ? '#F0F0F8' : '#5C5C72';
   return <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth={1.5}><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20 7 22h10c0-2-.85-3.25-2.03-3.79A1.07 1.07 0 0 1 14 17v-2.34" /><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" /></svg>;
 }
-function MedalIcon({ active }: { active: boolean }) {
-  const c = active ? '#F0F0F8' : '#5C5C72';
-  return <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth={1.5}><polygon points="12 2 15 8.5 22 9.3 17 14 18.2 21 12 17.5 5.8 21 7 14 2 9.3 9 8.5 12 2" /></svg>;
-}
 function TrendUpIcon({ size = 14 }: { size?: number }) {
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth={2}><polyline points="23 6 13.5 15.5 8.5 10.5 1 18" /><polyline points="17 6 23 6 23 12" /></svg>;
 }
 function CheckIcon({ size = 12 }: { size?: number }) {
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="#0A0A0F" strokeWidth={3}><polyline points="20 6 9 17 4 12" /></svg>;
 }
-
-const rarityColors: Record<string, string> = { common: '#9494AC', rare: '#3B82F6', epic: '#A855F7', legendary: '#FFB800' };
 
 // Activity Ring
 function ActivityRing({ label, current, goal, color, size = 58 }: { label: string; current: number; goal: number; color: string; size?: number }) {
@@ -60,7 +54,7 @@ function CalendarIcon({ active }: { active: boolean }) {
   return <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth={1.5}><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /><rect x="7" y="14" width="3" height="3" rx="0.5" fill={active ? c : 'none'} /><rect x="14" y="14" width="3" height="3" rx="0.5" fill={active ? c : 'none'} /></svg>;
 }
 
-type ProfileTab = 'posts' | 'cuts' | 'records' | 'achievements' | 'routine';
+type ProfileTab = 'posts' | 'cuts' | 'records' | 'routine';
 
 function formatDuration(secs: number): string {
   const h = Math.floor(secs / 3600);
@@ -184,7 +178,6 @@ export default function ProfilePage() {
           },
           history,
           records,
-          achievements: [],
           monthlyVolume: [],
           memberSince: data.createdAt,
         });
@@ -227,8 +220,7 @@ export default function ProfilePage() {
     { key: 'posts', icon: (a) => <GridIcon active={a} />, label: 'Posts' },
     { key: 'cuts', icon: (a) => <FilmIcon active={a} />, label: 'Cuts' },
     { key: 'records', icon: (a) => <TrophySmIcon active={a} />, label: 'Records' },
-    { key: 'achievements', icon: (a) => <MedalIcon active={a} />, label: 'Conquistas' },
-    { key: 'routine', icon: (a) => <CalendarIcon active={a} />, label: 'Rotina' },
+{ key: 'routine', icon: (a) => <CalendarIcon active={a} />, label: 'Rotina' },
   ];
 
   return (
@@ -480,42 +472,6 @@ export default function ProfilePage() {
           <div style={{ textAlign: 'center', padding: '40px 20px', color: '#5C5C72' }}>
             <TrophySmIcon active={false} />
             <p style={{ fontSize: '13px', marginTop: '8px' }}>Nenhum recorde pessoal ainda.</p>
-          </div>
-        )
-      )}
-
-      {/* Achievements grid */}
-      {activeTab === 'achievements' && (
-        p.achievements.length > 0 ? (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px', marginTop: '8px' }}>
-            {p.achievements.map(a => {
-              const color = rarityColors[a.rarity];
-              return (
-                <div key={a.id} style={{
-                  background: '#141420', borderRadius: '12px', border: `1px solid ${a.unlocked ? `${color}30` : 'rgba(148,148,172,0.08)'}`,
-                  padding: '14px', opacity: a.unlocked ? 1 : 0.6,
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
-                    <span style={{ fontSize: '8px', fontWeight: 700, color, textTransform: 'uppercase' }}>{a.rarity}</span>
-                  </div>
-                  <div style={{ fontSize: '12px', fontWeight: 700, color: '#F0F0F8', marginBottom: '2px' }}>{a.title}</div>
-                  <div style={{ fontSize: '10px', color: '#5C5C72', lineHeight: 1.4 }}>{a.description}</div>
-                  {!a.unlocked && a.progress !== undefined && (
-                    <div style={{ marginTop: '6px' }}>
-                      <div style={{ height: '3px', borderRadius: '2px', background: '#1A1A28' }}>
-                        <div style={{ height: '100%', width: `${a.progress}%`, borderRadius: '2px', background: color }} />
-                      </div>
-                      <div style={{ fontSize: '9px', color: '#5C5C72', marginTop: '2px' }}>{a.progress}%</div>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <div style={{ textAlign: 'center', padding: '40px 20px', color: '#5C5C72' }}>
-            <MedalIcon active={false} />
-            <p style={{ fontSize: '13px', marginTop: '8px' }}>Nenhuma conquista ainda.</p>
           </div>
         )
       )}

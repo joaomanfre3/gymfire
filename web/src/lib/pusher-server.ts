@@ -38,6 +38,10 @@ export const EVENTS = {
   WORKOUT_FINISHED: 'workout-finished',
   NEW_FOLLOWER: 'new-follower',
   NEW_PR: 'new-pr',
+  NEW_MESSAGE: 'new-message',
+  MESSAGE_EDITED: 'message-edited',
+  MESSAGE_DELETED: 'message-deleted',
+  MESSAGES_READ: 'messages-read',
 } as const;
 
 // Helper to trigger events safely

@@ -31,7 +31,6 @@ export interface ProfileData {
   };
   history: WorkoutHistory[];
   records: PersonalRecordEntry[];
-  achievements: AchievementEntry[];
   monthlyVolume: { month: string; value: number }[];
   memberSince: string;
 }
@@ -55,16 +54,6 @@ export interface PersonalRecordEntry {
   improvement: string;
   isNew: boolean;
   date: string;
-}
-
-export interface AchievementEntry {
-  id: string;
-  title: string;
-  description: string;
-  unlocked: boolean;
-  progress?: number;
-  icon: 'flame' | 'trophy' | 'zap' | 'star' | 'medal' | 'crown' | 'target' | 'mountain';
-  rarity: 'common' | 'rare' | 'epic' | 'legendary';
 }
 
 export interface TierInfo {
