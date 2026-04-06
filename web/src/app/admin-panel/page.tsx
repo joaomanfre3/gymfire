@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Navbar from '@/components/Navbar';
+import Navbar from '@/components/Navbar'; // kept for mobile top bar
 import { apiFetch, getToken, getUser } from '@/lib/api';
 import { startImpersonation } from '@/components/ImpersonationBanner';
 

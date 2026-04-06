@@ -13,9 +13,6 @@ function ImageIcon() {
 function FilmIcon() {
   return <svg width={28} height={28} viewBox="0 0 24 24" fill="none" stroke="#00D4FF" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="2" /><line x1="7" y1="2" x2="7" y2="22" /><line x1="17" y1="2" x2="17" y2="22" /><line x1="2" y1="12" x2="22" y2="12" /><line x1="2" y1="7" x2="7" y2="7" /><line x1="2" y1="17" x2="7" y2="17" /><line x1="17" y1="7" x2="22" y2="7" /><line x1="17" y1="17" x2="22" y2="17" /></svg>;
 }
-function DumbbellIcon() {
-  return <svg width={28} height={28} viewBox="0 0 24 24" fill="none" stroke="#CCFF00" strokeWidth={1.5} strokeLinecap="round"><path d="M6.5 6.5h11M6 12H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1h2m0 8H4a1 1 0 0 1-1-1v-2a1 1 0 0 1 1-1h2m0-4v8m12-8h2a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1h-2m0-8h2a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1h-2m0 4V8" /></svg>;
-}
 
 export default function CreateModal({ open, onClose }: Props) {
   const router = useRouter();
@@ -38,14 +35,6 @@ export default function CreateModal({ open, onClose }: Props) {
       color: '#00D4FF',
       borderColor: 'rgba(0, 212, 255, 0.25)',
       onClick: () => { onClose(); router.push('/cuts/create'); },
-    },
-    {
-      icon: <DumbbellIcon />,
-      title: 'Treino',
-      description: 'Iniciar um treino',
-      color: '#CCFF00',
-      borderColor: 'rgba(204, 255, 0, 0.25)',
-      onClick: () => { onClose(); router.push('/workout'); },
     },
   ];
 

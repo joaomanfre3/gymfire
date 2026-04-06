@@ -259,6 +259,19 @@ export default function ProfilePage() {
         }}>Compartilhar</button>
       </div>
 
+      {/* Treinos button */}
+      <Link href="/workout" style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
+        padding: '12px', borderRadius: '12px', marginBottom: '16px',
+        background: 'linear-gradient(135deg, #FF6B35, #E05520)',
+        color: '#fff', fontSize: '14px', fontWeight: 700,
+        textDecoration: 'none', border: 'none', cursor: 'pointer',
+        boxShadow: '0 4px 15px rgba(255, 107, 53, 0.3)',
+      }}>
+        <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2} strokeLinecap="round"><path d="M6.5 6.5h11M6 12H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1h2m0 8H4a1 1 0 0 1-1-1v-2a1 1 0 0 1 1-1h2m0-4v8m12-8h2a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1h-2m0-8h2a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1h-2m0 4V8" /></svg>
+        Treinos
+      </Link>
+
       {/* Activity rings + weekly heatmap (compact row) */}
       <div style={{ display: 'flex', gap: '10px', marginBottom: '16px' }}>
         {/* Rings */}

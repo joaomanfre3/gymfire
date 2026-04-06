@@ -66,7 +66,7 @@ export default function SidebarNav() {
     setUser(getUser());
   }, [pathname]);
 
-  if (pathname === '/login' || pathname === '/register' || pathname?.startsWith('/admin')) return null;
+  if (pathname === '/login' || pathname === '/register' || (pathname?.startsWith('/admin') && !pathname?.startsWith('/admin-panel'))) return null;
 
   const isActive = (href: string) => href === '/' ? pathname === '/' : pathname?.startsWith(href);
 

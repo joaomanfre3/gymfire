@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { getToken, apiFetch } from '@/lib/api';
 import { usePusherChannel } from '@/hooks/usePusher';
 import type { FeedPost } from '@/lib/feed-types';
-import { mockPosts, mockSuggestions, mockChallenges } from '@/lib/feed-mock-data';
 import DropsBar from './DropsBar';
 import CreatePostBox from './CreatePostBox';
 // FeedFilters removed
@@ -73,10 +72,8 @@ export default function FeedPage() {
         }
       }
     } catch {
-      // Fall through to mock data
+      // API failed, show empty feed
     }
-    // Use mock data as fallback
-    setPosts(mockPosts);
     setLoading(false);
   }
 
@@ -203,8 +200,8 @@ export default function FeedPage() {
       {/* Right sidebar - desktop only */}
       <div className="feed-sidebar-right">
         <SidebarRight
-          suggestions={mockSuggestions}
-          challenges={mockChallenges}
+          suggestions={[]}
+          challenges={[]}
         />
       </div>
     </div>
