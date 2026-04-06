@@ -30,6 +30,13 @@ export async function GET(request: Request) {
           where: { userId: user.id },
           select: { id: true },
         },
+        likes: {
+          where: { userId: user.id },
+          select: { id: true },
+        },
+        _count: {
+          select: { likes: true, comments: true },
+        },
       },
       orderBy: { createdAt: 'asc' },
     });
@@ -48,6 +55,9 @@ export async function GET(request: Request) {
         duration: number;
         createdAt: Date;
         seen: boolean;
+        isLiked: boolean;
+        likesCount: number;
+        commentsCount: number;
       }>;
       allSeen: boolean;
     }>();
@@ -76,16 +86,17 @@ export async function GET(request: Request) {
         duration: drop.duration,
         createdAt: drop.createdAt,
         seen,
+        isLiked: drop.likes.length > 0,
+        likesCount: drop._count.likes,
+        commentsCount: drop._count.comments,
       });
       if (!seen) entry.allSeen = false;
     }
 
-    // Sort: unseen first, then seen
+    // Sort: own first, unseen before seen
     const result = Array.from(userDropsMap.values()).sort((a, b) => {
-      // Own drops always first
       if (a.userId === user.id) return -1;
       if (b.userId === user.id) return 1;
-      // Unseen before seen
       if (!a.allSeen && b.allSeen) return -1;
       if (a.allSeen && !b.allSeen) return 1;
       return 0;
@@ -119,6 +130,40 @@ export async function POST(request: Request) {
         expiresAt,
       },
     });
+
+    // Extract @mentions from caption and create mention records + notifications
+    if (caption) {
+      const mentionRegex = /@(\w+)/g;
+      let match;
+      const usernames: string[] = [];
+      while ((match = mentionRegex.exec(caption)) !== null) {
+        usernames.push(match[1]);
+      }
+
+      if (usernames.length > 0) {
+        const mentionedUsers = await prisma.user.findMany({
+          where: { username: { in: usernames } },
+          select: { id: true, username: true },
+        });
+
+        for (const mentioned of mentionedUsers) {
+          if (mentioned.id === user.id) continue;
+          await prisma.speedMention.create({
+            data: { speedId: drop.id, userId: mentioned.id },
+          }).catch(() => {});
+
+          await prisma.notification.create({
+            data: {
+              userId: mentioned.id,
+              type: 'SPEED_MENTION',
+              title: 'Menção no Drop',
+              body: `${user.displayName} mencionou você em um drop`,
+              data: { speedId: drop.id, fromUserId: user.id },
+            },
+          }).catch(() => {});
+        }
+      }
+    }
 
     return NextResponse.json({ id: drop.id }, { status: 201 });
   } catch (error) {

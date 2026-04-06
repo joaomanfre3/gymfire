@@ -71,14 +71,6 @@ export default function RoutinesPage() {
     } catch { /* ignore */ }
   }
 
-  const mockTemplates = [
-    { name: 'Push Pull Legs (Push)', exercises: 6, est: '55min' },
-    { name: 'Push Pull Legs (Pull)', exercises: 5, est: '50min' },
-    { name: 'Push Pull Legs (Legs)', exercises: 7, est: '60min' },
-    { name: 'Full Body Iniciante', exercises: 4, est: '45min' },
-    { name: 'Upper/Lower A', exercises: 6, est: '55min' },
-  ];
-
   return (
     <div style={{ minHeight: '100vh', background: '#0A0A0F' }}>
       <Navbar />
@@ -236,46 +228,6 @@ export default function RoutinesPage() {
               </div>
             )}
 
-            {/* Templates */}
-            <div>
-              <div style={{
-                fontSize: '12px', fontWeight: 700, color: '#5C5C72',
-                textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: '10px',
-              }}>Templates Populares</div>
-
-              <div style={{
-                background: '#141420', borderRadius: '14px',
-                border: '1px solid rgba(148, 148, 172, 0.08)',
-                overflow: 'hidden',
-              }}>
-                {mockTemplates.map((t, i) => (
-                  <div key={i} style={{
-                    display: 'flex', alignItems: 'center', padding: '14px 16px', gap: '12px',
-                    borderBottom: i < mockTemplates.length - 1 ? '1px solid rgba(148,148,172,0.06)' : 'none',
-                  }}>
-                    <div style={{
-                      width: '36px', height: '36px', borderRadius: '10px',
-                      background: 'rgba(255,107,53,0.08)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                    }}>
-                      <ListIcon />
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: '14px', fontWeight: 600, color: '#F0F0F8' }}>{t.name}</div>
-                      <div style={{ display: 'flex', gap: '8px', marginTop: '3px' }}>
-                        <span style={{ fontSize: '12px', color: '#9494AC', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                          <DumbbellSmallIcon /> {t.exercises} exerc.
-                        </span>
-                        <span style={{ fontSize: '12px', color: '#9494AC', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                          <TimerIcon /> {t.est}
-                        </span>
-                      </div>
-                    </div>
-                    <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="#5C5C72" strokeWidth={2} strokeLinecap="round"><polyline points="9 18 15 12 9 6" /></svg>
-                  </div>
-                ))}
-              </div>
-            </div>
           </>
         )}
       </main>

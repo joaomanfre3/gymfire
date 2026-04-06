@@ -14,6 +14,9 @@ interface DropItem {
   duration: number;
   createdAt: string;
   seen: boolean;
+  isLiked: boolean;
+  likesCount: number;
+  commentsCount: number;
 }
 
 interface DropUser {
@@ -58,6 +61,15 @@ export default function DropsBar() {
     })));
     // Fire API
     apiFetch(`/api/drops/${dropId}/view`, { method: 'POST' }).catch(() => {});
+  }
+
+  function handleDropDeleted(dropId: string) {
+    setDropUsers(prev => {
+      return prev.map(u => ({
+        ...u,
+        drops: u.drops.filter(d => d.id !== dropId),
+      })).filter(u => u.drops.length > 0);
+    });
   }
 
   function handleCloseViewer() {
@@ -219,6 +231,7 @@ export default function DropsBar() {
           user={viewingUser}
           onClose={handleCloseViewer}
           onViewed={handleDropViewed}
+          onDeleted={handleDropDeleted}
         />
       )}
 

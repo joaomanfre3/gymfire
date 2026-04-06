@@ -5,7 +5,6 @@ import { apiFetch } from '@/lib/api';
 import { usePusherChannel } from '@/hooks/usePusher';
 import type { RankingUser, RankingPeriod, RankingCategory } from '@/lib/ranking-types';
 import { getUserStatValue } from '@/lib/ranking-types';
-import { mockRankingUsers } from '@/lib/ranking-mock-data';
 import { TrophyIcon } from './RankingIcons';
 import PeriodTabs from './PeriodTabs';
 import CategoryFilters from './CategoryFilters';
@@ -39,7 +38,7 @@ export default function RankingPage() {
               id: (entry.id as string) || `api-${i}`,
               name: (entry.displayName as string) || 'Usuário',
               username: (entry.username as string) || 'user',
-              avatar: (entry.avatarUrl as string) || `https://i.pravatar.cc/96?u=${i}`,
+              avatar: (entry.avatarUrl as string) || '',
               isVerified: (entry.isVerified as boolean) || false,
               level,
               levelProgress: Math.round((totalPts % 500) / 5),
@@ -48,10 +47,10 @@ export default function RankingPage() {
               stats: {
                 xp: ((period === 'weekly' ? entry.weeklyPoints : entry.totalPoints) as number) || 0,
                 workouts: (entry.workoutsCount as number) || 0,
-                volume: (entry.workoutsCount as number || 0) * 2500, // estimate
-                distance: Math.floor(Math.random() * 500),
+                volume: 0,
+                distance: 0,
                 streak: (entry.currentStreak as number) || 0,
-                prs: Math.floor(Math.random() * 15),
+                prs: 0,
               },
             };
           });
@@ -61,7 +60,7 @@ export default function RankingPage() {
         }
       }
     } catch { /* fallthrough */ }
-    setUsers(mockRankingUsers);
+    setUsers([]);
     setLoading(false);
   }
 

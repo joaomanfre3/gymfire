@@ -17,34 +17,30 @@ export async function GET(
     const routine = await prisma.routine.findUnique({
       where: { id },
       include: {
-        sets: {
-          include: { exercise: true },
+        routineWorkouts: {
+          include: {
+            exercises: {
+              include: { exercise: true },
+              orderBy: { order: 'asc' },
+            },
+          },
           orderBy: { order: 'asc' },
         },
       },
     });
 
     if (!routine) {
-      return NextResponse.json(
-        { error: 'Routine not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Routine not found' }, { status: 404 });
     }
 
     if (routine.userId !== user.id && !routine.isPublic) {
-      return NextResponse.json(
-        { error: 'Routine not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Routine not found' }, { status: 404 });
     }
 
     return NextResponse.json(routine);
   } catch (error) {
     console.error('Routine detail error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
@@ -59,30 +55,38 @@ export async function PATCH(
     }
 
     const { id } = await params;
-
     const routine = await prisma.routine.findUnique({ where: { id } });
 
     if (!routine || routine.userId !== user.id) {
-      return NextResponse.json(
-        { error: 'Routine not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Routine not found' }, { status: 404 });
     }
 
     const body = await request.json();
-    const { name, description, days, isPublic } = body;
+    const { name, description, isActive } = body;
+
+    // If activating this routine, deactivate all others
+    if (isActive === true) {
+      await prisma.routine.updateMany({
+        where: { userId: user.id, isActive: true },
+        data: { isActive: false },
+      });
+    }
 
     const updated = await prisma.routine.update({
       where: { id },
       data: {
         ...(name !== undefined && { name }),
         ...(description !== undefined && { description }),
-        ...(days !== undefined && { days }),
-        ...(isPublic !== undefined && { isPublic }),
+        ...(isActive !== undefined && { isActive }),
       },
       include: {
-        sets: {
-          include: { exercise: true },
+        routineWorkouts: {
+          include: {
+            exercises: {
+              include: { exercise: true },
+              orderBy: { order: 'asc' },
+            },
+          },
           orderBy: { order: 'asc' },
         },
       },
@@ -91,10 +95,7 @@ export async function PATCH(
     return NextResponse.json(updated);
   } catch (error) {
     console.error('Routine update error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
@@ -109,14 +110,10 @@ export async function DELETE(
     }
 
     const { id } = await params;
-
     const routine = await prisma.routine.findUnique({ where: { id } });
 
     if (!routine || routine.userId !== user.id) {
-      return NextResponse.json(
-        { error: 'Routine not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Routine not found' }, { status: 404 });
     }
 
     await prisma.routine.delete({ where: { id } });
@@ -124,9 +121,6 @@ export async function DELETE(
     return NextResponse.json({ message: 'Routine deleted' });
   } catch (error) {
     console.error('Routine delete error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

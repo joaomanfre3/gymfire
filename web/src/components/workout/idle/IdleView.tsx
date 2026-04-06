@@ -17,17 +17,6 @@ interface Routine {
   sets: Array<{ exercise: { id: string; name: string; muscleGroup: string } }>;
 }
 
-const mockRoutines = [
-  { id: 'r1', name: 'Push Day', exerciseCount: 6, estimatedMin: 55 },
-  { id: 'r2', name: 'Pull Day', exerciseCount: 5, estimatedMin: 50 },
-  { id: 'r3', name: 'Leg Day', exerciseCount: 7, estimatedMin: 60 },
-];
-
-const mockTemplates = [
-  { name: 'Full Body Iniciante', duration: '45min', exercises: 4 },
-  { name: 'Upper/Lower A', duration: '55min', exercises: 6 },
-  { name: 'PPL Push Day', duration: '50min', exercises: 6 },
-];
 
 export default function IdleView({ dispatch }: Props) {
   const [routines, setRoutines] = useState<Routine[]>([]);
@@ -144,72 +133,6 @@ export default function IdleView({ dispatch }: Props) {
         </div>
       )}
 
-      {/* Mock routines for non-logged users */}
-      {!loggedIn && (
-        <div style={{ marginBottom: '20px' }}>
-          <span style={{ fontSize: '13px', fontWeight: 700, color: '#5C5C72', textTransform: 'uppercase', letterSpacing: '0.8px', display: 'block', marginBottom: '12px' }}>
-            Rotinas Populares
-          </span>
-          <div className="hide-scrollbar" style={{ display: 'flex', gap: '10px', overflowX: 'auto', scrollbarWidth: 'none' }}>
-            {mockRoutines.map(r => (
-              <div key={r.id} style={{
-                minWidth: '150px',
-                background: '#141420',
-                border: '1px solid rgba(148, 148, 172, 0.08)',
-                borderRadius: '12px',
-                padding: '16px',
-                flexShrink: 0,
-              }}>
-                <div style={{ fontSize: '14px', fontWeight: 600, color: '#F0F0F8', marginBottom: '6px' }}>{r.name}</div>
-                <div style={{ fontSize: '12px', color: '#9494AC' }}>{r.exerciseCount} exercícios</div>
-                <div style={{ fontSize: '12px', color: '#5C5C72', marginTop: '2px' }}>~{r.estimatedMin} min</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Templates */}
-      <div style={{ marginBottom: '20px' }}>
-        <span style={{ fontSize: '13px', fontWeight: 700, color: '#5C5C72', textTransform: 'uppercase', letterSpacing: '0.8px', display: 'block', marginBottom: '12px' }}>
-          Templates Populares
-        </span>
-        <div style={{
-          background: '#141420',
-          borderRadius: '14px',
-          border: '1px solid rgba(148, 148, 172, 0.08)',
-          overflow: 'hidden',
-        }}>
-          {mockTemplates.map((t, i) => (
-            <div key={i} style={{
-              display: 'flex',
-              alignItems: 'center',
-              padding: '14px 16px',
-              borderBottom: i < mockTemplates.length - 1 ? '1px solid rgba(148, 148, 172, 0.08)' : 'none',
-              gap: '12px',
-            }}>
-              <div style={{
-                width: '36px', height: '36px', borderRadius: '10px',
-                background: 'rgba(255, 107, 53, 0.08)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                flexShrink: 0,
-              }}>
-                <DumbbellIcon size={18} color="#FF6B35" />
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: '14px', fontWeight: 600, color: '#F0F0F8' }}>{t.name}</div>
-                <div style={{ display: 'flex', gap: '8px', marginTop: '2px' }}>
-                  <span style={{ fontSize: '12px', color: '#9494AC', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                    <TimerIcon size={11} color="#9494AC" /> {t.duration}
-                  </span>
-                  <span style={{ fontSize: '12px', color: '#9494AC' }}>{t.exercises} exerc.</span>
-                </div>
-              </div>
-              <ChevronRightIcon size={16} color="#5C5C72" />
-            </div>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }

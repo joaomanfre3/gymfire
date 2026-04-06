@@ -104,27 +104,6 @@ export default function ExplorePage() {
           </div>
         )}
 
-        {!search.trim() && (
-          <>
-            {/* Discover grid placeholder */}
-            <div style={{
-              fontSize: '12px', fontWeight: 700, color: '#5C5C72',
-              textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: '10px',
-            }}>Descobrir</div>
-            <div style={{
-              display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '2px',
-              borderRadius: '12px', overflow: 'hidden',
-            }}>
-              {Array.from({ length: 9 }).map((_, i) => (
-                <div key={i} style={{
-                  aspectRatio: '1', background: '#141420',
-                  backgroundImage: `url(https://images.unsplash.com/photo-${['1534438327276-14e5300c3a48', '1571019614242-c5c5dee9f50b', '1526506118085-60ce8714f8c5', '1552674605-db6ffd4facb5', '1583454110551-21f2fa2afe61', '1581009146145-b5ef050c2e1e', '1461896836934-bd45ba448c52', '1605296867304-46d5465a13f1', '1574680096145-d05b474e2155'][i]}?w=300&h=300&fit=crop)`,
-                  backgroundSize: 'cover', backgroundPosition: 'center',
-                }} />
-              ))}
-            </div>
-          </>
-        )}
       </main>
     </div>
   );

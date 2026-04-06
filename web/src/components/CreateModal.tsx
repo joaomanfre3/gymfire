@@ -1,6 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
 interface Props {
   open: boolean;
@@ -16,6 +17,15 @@ function FilmIcon() {
 
 export default function CreateModal({ open, onClose }: Props) {
   const router = useRouter();
+
+  useEffect(() => {
+    if (!open) return;
+    const handleVisibility = () => {
+      if (document.hidden) onClose();
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [open, onClose]);
 
   if (!open) return null;
 

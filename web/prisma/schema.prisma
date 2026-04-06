@@ -50,6 +50,10 @@ model User {
   conversations   Participant[]
   speeds          Speed[]
   speedViews      SpeedView[]
+  speedLikes      SpeedLike[]
+  speedComments   SpeedComment[]
+  speedMentions   SpeedMention[]
+  speedReposts    SpeedRepost[]
   highlights      Highlight[]
   notifications   Notification[]
   badges          UserBadge[]
@@ -112,6 +116,7 @@ model Exercise {
 
   workoutSets     WorkoutSet[]
   routineSets     RoutineSet[]
+  routineWorkoutExercises RoutineWorkoutExercise[]
   personalRecords PersonalRecord[]
   folderItems     FolderItem[]
   aliases         ExerciseAlias[]
@@ -225,6 +230,7 @@ model Routine {
   id          String       @id @default(cuid())
   name        String
   description String?
+  isActive    Boolean      @default(false) @map("is_active")
   days        WeekDay[]
   userId      String       @map("user_id")
   user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -236,6 +242,7 @@ model Routine {
   updatedAt   DateTime     @updatedAt @map("updated_at")
   sets        RoutineSet[]
   workouts    Workout[]
+  routineWorkouts RoutineWorkout[]
 
   @@map("routines")
 }
@@ -255,6 +262,33 @@ model RoutineSet {
   rpe         Int?
 
   @@map("routine_sets")
+}
+
+model RoutineWorkout {
+  id          String   @id @default(cuid())
+  routineId   String   @map("routine_id")
+  routine     Routine  @relation(fields: [routineId], references: [id], onDelete: Cascade)
+  day         WeekDay
+  name        String
+  order       Int      @default(0)
+  exercises   RoutineWorkoutExercise[]
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("routine_workouts")
+}
+
+model RoutineWorkoutExercise {
+  id          String         @id @default(cuid())
+  workoutId   String         @map("workout_id")
+  workout     RoutineWorkout @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+  exerciseId  String         @map("exercise_id")
+  exercise    Exercise       @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  order       Int            @default(0)
+  sets        Int            @default(3)
+  reps        Int            @default(12)
+  weight      Float          @default(0)
+
+  @@map("routine_workout_exercises")
 }
 
 enum WeekDay {
@@ -518,6 +552,10 @@ model Speed {
   highlightId  String?    @map("highlight_id")
   highlight    Highlight? @relation(fields: [highlightId], references: [id], onDelete: SetNull)
   views        SpeedView[]
+  likes        SpeedLike[]
+  comments     SpeedComment[]
+  mentions     SpeedMention[]
+  reposts      SpeedRepost[]
   createdAt    DateTime   @default(now()) @map("created_at")
 
   @@map("speeds")
@@ -533,6 +571,54 @@ model SpeedView {
 
   @@unique([speedId, userId])
   @@map("speed_views")
+}
+
+model SpeedLike {
+  id       String   @id @default(cuid())
+  speedId  String   @map("speed_id")
+  speed    Speed    @relation(fields: [speedId], references: [id], onDelete: Cascade)
+  userId   String   @map("user_id")
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([speedId, userId])
+  @@map("speed_likes")
+}
+
+model SpeedComment {
+  id       String   @id @default(cuid())
+  speedId  String   @map("speed_id")
+  speed    Speed    @relation(fields: [speedId], references: [id], onDelete: Cascade)
+  userId   String   @map("user_id")
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  text     String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("speed_comments")
+}
+
+model SpeedMention {
+  id       String   @id @default(cuid())
+  speedId  String   @map("speed_id")
+  speed    Speed    @relation(fields: [speedId], references: [id], onDelete: Cascade)
+  userId   String   @map("user_id")
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([speedId, userId])
+  @@map("speed_mentions")
+}
+
+model SpeedRepost {
+  id       String   @id @default(cuid())
+  speedId  String   @map("speed_id")
+  speed    Speed    @relation(fields: [speedId], references: [id], onDelete: Cascade)
+  userId   String   @map("user_id")
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([speedId, userId])
+  @@map("speed_reposts")
 }
 
 model Highlight {
@@ -676,6 +762,9 @@ enum NotificationType {
   CHALLENGE_COMPLETE
   SPEED_VIEW
   SPEED_REACTION
+  SPEED_COMMENT
+  SPEED_MENTION
+  SPEED_REPOST
   FIRE_REACTION
   BADGE_EARNED
   WEEKLY_SUMMARY

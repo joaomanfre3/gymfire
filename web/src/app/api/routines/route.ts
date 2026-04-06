@@ -12,8 +12,13 @@ export async function GET(request: Request) {
     const routines = await prisma.routine.findMany({
       where: { userId: user.id },
       include: {
-        sets: {
-          include: { exercise: true },
+        routineWorkouts: {
+          include: {
+            exercises: {
+              include: { exercise: true },
+              orderBy: { order: 'asc' },
+            },
+          },
           orderBy: { order: 'asc' },
         },
       },
@@ -38,7 +43,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { name, description, days } = body;
+    const { name, description } = body;
 
     if (!name) {
       return NextResponse.json(
@@ -47,16 +52,28 @@ export async function POST(request: Request) {
       );
     }
 
+    // Deactivate all other routines for this user
+    await prisma.routine.updateMany({
+      where: { userId: user.id, isActive: true },
+      data: { isActive: false },
+    });
+
     const routine = await prisma.routine.create({
       data: {
         name,
         description: description || null,
-        days: days || [],
+        isActive: true,
         userId: user.id,
       },
       include: {
-        sets: {
-          include: { exercise: true },
+        routineWorkouts: {
+          include: {
+            exercises: {
+              include: { exercise: true },
+              orderBy: { order: 'asc' },
+            },
+          },
+          orderBy: { order: 'asc' },
         },
       },
     });

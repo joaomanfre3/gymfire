@@ -15,6 +15,9 @@ interface DropItem {
   duration: number;
   createdAt: string;
   seen: boolean;
+  isLiked: boolean;
+  likesCount: number;
+  commentsCount: number;
 }
 
 interface DropUser {
@@ -150,7 +153,7 @@ export default function DropsPage() {
       </main>
 
       {viewingUser && (
-        <DropViewer user={viewingUser} onClose={() => { setViewingUser(null); loadDrops(); }} onViewed={handleViewed} />
+        <DropViewer user={viewingUser} onClose={() => { setViewingUser(null); loadDrops(); }} onViewed={handleViewed} onDeleted={() => loadDrops()} />
       )}
       {showCreator && (
         <DropCreator onClose={() => setShowCreator(false)} onCreated={() => { setShowCreator(false); loadDrops(); }} />

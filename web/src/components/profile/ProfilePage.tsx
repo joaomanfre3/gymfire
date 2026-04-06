@@ -4,9 +4,9 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { apiFetch, getToken, getUser, logout } from '@/lib/api';
 import AdminPanel from './AdminPanel';
+import RoutineTab from './RoutineTab';
 import type { ProfileData, AchievementEntry } from '@/lib/profile-types';
 import { getTier } from '@/lib/profile-types';
-import { mockProfile } from '@/lib/profile-mock-data';
 
 // ======== ICONS ========
 function SettingsIcon({ size = 22 }: { size?: number }) {
@@ -35,17 +35,6 @@ function CheckIcon({ size = 12 }: { size?: number }) {
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="#0A0A0F" strokeWidth={3}><polyline points="20 6 9 17 4 12" /></svg>;
 }
 
-// Achievement icons mapping
-const achieveIcons: Record<string, React.ReactNode> = {
-  flame: <svg width={16} height={16} viewBox="0 0 24 24" fill="#FF6B35" stroke="none"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14 0-5.5 3-7 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.4-2.15 1-3 .22.65.84 1.3 1.5 1.5z" /></svg>,
-  trophy: <TrophySmIcon active={false} />,
-  zap: <svg width={16} height={16} viewBox="0 0 24 24" fill="#CCFF00" stroke="none"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg>,
-  star: <MedalIcon active={false} />,
-  medal: <TrophySmIcon active={false} />,
-  crown: <MedalIcon active={false} />,
-  target: <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth={1.5}><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="6" /><circle cx="12" cy="12" r="2" /></svg>,
-  mountain: <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="#FF6B35" strokeWidth={1.5}><path d="M8 3l4 8 5-5 5 15H2L8 3z" /></svg>,
-};
 const rarityColors: Record<string, string> = { common: '#9494AC', rare: '#3B82F6', epic: '#A855F7', legendary: '#FFB800' };
 
 // Activity Ring
@@ -66,28 +55,6 @@ function ActivityRing({ label, current, goal, color, size = 58 }: { label: strin
   );
 }
 
-// Mock post images for grid
-const mockPostImages = [
-  'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=300&h=300&fit=crop',
-  'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=300&h=300&fit=crop',
-  'https://images.unsplash.com/photo-1526506118085-60ce8714f8c5?w=300&h=300&fit=crop',
-  'https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=300&h=300&fit=crop',
-  'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=300&h=300&fit=crop',
-  'https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=300&h=300&fit=crop',
-  'https://images.unsplash.com/photo-1461896836934-bd45ba448c52?w=300&h=300&fit=crop',
-  'https://images.unsplash.com/photo-1605296867304-46d5465a13f1?w=300&h=300&fit=crop',
-  'https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=300&h=300&fit=crop',
-];
-
-const mockCutThumbnails = [
-  'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=300&h=500&fit=crop',
-  'https://images.unsplash.com/photo-1526506118085-60ce8714f8c5?w=300&h=500&fit=crop',
-  'https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=300&h=500&fit=crop',
-  'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=300&h=500&fit=crop',
-  'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=300&h=500&fit=crop',
-  'https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=300&h=500&fit=crop',
-];
-
 function CalendarIcon({ active }: { active: boolean }) {
   const c = active ? '#F0F0F8' : '#5C5C72';
   return <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth={1.5}><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /><rect x="7" y="14" width="3" height="3" rx="0.5" fill={active ? c : 'none'} /><rect x="14" y="14" width="3" height="3" rx="0.5" fill={active ? c : 'none'} /></svg>;
@@ -95,15 +62,26 @@ function CalendarIcon({ active }: { active: boolean }) {
 
 type ProfileTab = 'posts' | 'cuts' | 'records' | 'achievements' | 'routine';
 
+function formatDuration(secs: number): string {
+  const h = Math.floor(secs / 3600);
+  const m = Math.floor((secs % 3600) / 60);
+  if (h > 0) return `${h}h ${m}m`;
+  return `${m}min`;
+}
+
+function formatVolume(vol: number): string {
+  if (vol >= 1000) return `${(vol / 1000).toFixed(1)}t`;
+  return `${vol}kg`;
+}
+
 export default function ProfilePage() {
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<ProfileTab>('posts');
   const [showAdmin, setShowAdmin] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [weight, setWeight] = useState('75');
-  const [height, setHeight] = useState('175');
-  const [editingBody, setEditingBody] = useState(false);
+  const [posts, setPosts] = useState<Array<{ id: string; mediaUrls: string[]; type: string }>>([]);
+  const [cuts, setCuts] = useState<Array<{ id: string; mediaUrls: string[]; caption: string }>>([]);
 
   useEffect(() => {
     const user = getUser();
@@ -118,27 +96,116 @@ export default function ProfilePage() {
 
   async function loadProfile() {
     const user = getUser();
-    if (user?.username) {
-      try {
-        const res = await apiFetch(`/api/users/${user.username}`);
-        if (res.ok) {
-          const data = await res.json();
-          const level = Math.max(1, Math.floor((data.totalPoints || 0) / 500));
-          setProfile({
-            ...mockProfile,
-            id: data.id, username: data.username, displayName: data.displayName,
-            bio: data.bio || mockProfile.bio, isVerified: data.isVerified || false,
-            level, xp: data.totalPoints || 0, xpToNext: 500 - ((data.totalPoints || 0) % 500), tier: getTier(level),
-            stats: { ...mockProfile.stats, workouts: data.workoutsCount || mockProfile.stats.workouts, streak: data.currentStreak || mockProfile.stats.streak, streakRecord: data.longestStreak || mockProfile.stats.streakRecord },
-            social: { followers: data.followersCount || 0, following: data.followingCount || 0, posts: data.postsCount || mockProfile.social.posts },
-            memberSince: data.createdAt,
-          });
-          setLoading(false); return;
-        }
-      } catch { /* fallthrough */ }
+    if (!user?.username) {
+      setLoading(false);
+      return;
     }
-    setProfile(mockProfile);
+
+    try {
+      const res = await apiFetch(`/api/users/${user.username}`);
+      if (res.ok) {
+        const data = await res.json();
+        const level = Math.max(1, Math.floor((data.totalPoints || 0) / 500));
+        const totalPoints = data.totalPoints || 0;
+
+        // Build workout history from API data
+        const history = (data.recentWorkouts || []).map((w: { id: string; title: string; date: string; durationSecs: number; totalVolume: number; totalSets: number; totalReps: number; exercises: string[] }) => ({
+          id: w.id,
+          name: w.title || 'Treino',
+          date: w.date,
+          duration: formatDuration(w.durationSecs || 0),
+          volume: formatVolume(w.totalVolume || 0),
+          sets: w.totalSets || 0,
+          calories: 0,
+          exercises: w.exercises || [],
+        }));
+
+        // Build personal records from API data
+        const records = (data.personalRecords || []).map((pr: { id: string; exercise: string; value: number; previousValue: number | null; type: string; date: string }) => {
+          const typeLabel = pr.type === 'MAX_WEIGHT' ? 'kg' : pr.type === 'MAX_REPS' ? ' reps' : pr.type === 'MAX_DISTANCE' ? 'km' : '';
+          return {
+            id: pr.id,
+            exercise: pr.exercise,
+            currentValue: `${pr.value}${typeLabel}`,
+            previousValue: pr.previousValue ? `${pr.previousValue}${typeLabel}` : '-',
+            improvement: pr.previousValue ? `+${(pr.value - pr.previousValue).toFixed(1)}${typeLabel}` : 'Novo',
+            isNew: !pr.previousValue,
+            date: pr.date,
+          };
+        });
+
+        // Compute weekly activity from recent workouts
+        const now = new Date();
+        const weekStart = new Date(now);
+        weekStart.setDate(now.getDate() - now.getDay() + 1); // Monday
+        weekStart.setHours(0, 0, 0, 0);
+        const weeklyActivity = [false, false, false, false, false, false, false];
+        (data.recentWorkouts || []).forEach((w: { date: string }) => {
+          const d = new Date(w.date);
+          if (d >= weekStart) {
+            const dayIdx = (d.getDay() + 6) % 7; // Mon=0, Sun=6
+            weeklyActivity[dayIdx] = true;
+          }
+        });
+
+        // Count workouts this week
+        const workoutsThisWeek = weeklyActivity.filter(Boolean).length;
+
+        setProfile({
+          id: data.id,
+          username: data.username,
+          displayName: data.displayName,
+          bio: data.bio || '',
+          avatar: data.avatarUrl || '',
+          isVerified: data.isVerified || false,
+          level,
+          xp: totalPoints,
+          xpToNext: 500 - (totalPoints % 500),
+          tier: getTier(level),
+          stats: {
+            workouts: data.workoutsCount || 0,
+            workoutsThisWeek,
+            streak: data.currentStreak || 0,
+            streakRecord: data.longestStreak || 0,
+            totalVolume: 0,
+            prs: records.length,
+          },
+          social: {
+            followers: data.followersCount || 0,
+            following: data.followingCount || 0,
+            posts: data.postsCount || 0,
+          },
+          weeklyActivity,
+          activityRings: {
+            calories: { current: 0, goal: 2500 },
+            workouts: { current: workoutsThisWeek, goal: 5 },
+            activeTime: { current: 0, goal: 360 },
+            hydration: { current: 0, goal: 3000 },
+          },
+          history,
+          records,
+          achievements: [],
+          monthlyVolume: [],
+          memberSince: data.createdAt,
+        });
+
+        // Load user posts
+        loadPosts(data.id);
+      }
+    } catch { /* ignore */ }
     setLoading(false);
+  }
+
+  async function loadPosts(userId: string) {
+    try {
+      const res = await apiFetch(`/api/feed?userId=${userId}`);
+      if (res.ok) {
+        const data = await res.json();
+        const allPosts = data || [];
+        setPosts(allPosts.filter((p: { type: string }) => p.type !== 'CUT'));
+        setCuts(allPosts.filter((p: { type: string }) => p.type === 'CUT'));
+      }
+    } catch { /* ignore */ }
   }
 
   if (loading) {
@@ -218,7 +285,7 @@ export default function ProfilePage() {
       {/* Display name + bio */}
       <div style={{ marginBottom: '12px' }}>
         <div style={{ fontSize: '14px', fontWeight: 700, color: '#F0F0F8' }}>{p.displayName}</div>
-        <div style={{ fontSize: '13px', color: '#9494AC', lineHeight: 1.5, marginTop: '2px' }}>{p.bio}</div>
+        {p.bio && <div style={{ fontSize: '13px', color: '#9494AC', lineHeight: 1.5, marginTop: '2px' }}>{p.bio}</div>}
       </div>
 
       {/* XP Progress bar */}
@@ -325,223 +392,136 @@ export default function ProfilePage() {
 
       {/* Posts grid */}
       {activeTab === 'posts' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '2px' }}>
-          {mockPostImages.map((img, i) => (
-            <div key={i} style={{
-              aspectRatio: '1', backgroundImage: `url(${img})`,
-              backgroundSize: 'cover', backgroundPosition: 'center',
-              cursor: 'pointer', position: 'relative',
-            }}>
-              <div style={{
-                position: 'absolute', inset: 0, background: 'transparent',
-                transition: 'background 200ms',
-              }}
-                onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,0,0,0.2)')}
-                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-              />
-            </div>
-          ))}
-        </div>
+        posts.length > 0 ? (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '2px' }}>
+            {posts.map((post) => (
+              <div key={post.id} style={{
+                aspectRatio: '1',
+                background: '#141420',
+                backgroundImage: post.mediaUrls?.[0] ? `url(${post.mediaUrls[0]})` : undefined,
+                backgroundSize: 'cover', backgroundPosition: 'center',
+                cursor: 'pointer', position: 'relative',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                {!post.mediaUrls?.[0] && (
+                  <svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="#5C5C72" strokeWidth={1.5}><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="m21 15-5-5L5 21" /></svg>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div style={{ textAlign: 'center', padding: '40px 20px', color: '#5C5C72' }}>
+            <GridIcon active={false} />
+            <p style={{ fontSize: '13px', marginTop: '8px' }}>Nenhum post ainda.</p>
+          </div>
+        )
       )}
 
       {/* Cuts grid (reels-style vertical) */}
       {activeTab === 'cuts' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '2px' }}>
-          {mockCutThumbnails.map((img, i) => (
-            <div key={i} style={{
-              aspectRatio: '9/16', backgroundImage: `url(${img})`,
-              backgroundSize: 'cover', backgroundPosition: 'center',
-              borderRadius: '4px', cursor: 'pointer', position: 'relative', overflow: 'hidden',
-            }}>
-              <div style={{
-                position: 'absolute', bottom: 0, left: 0, right: 0, padding: '8px',
-                background: 'linear-gradient(transparent, rgba(0,0,0,0.7))',
+        cuts.length > 0 ? (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '2px' }}>
+            {cuts.map((cut) => (
+              <div key={cut.id} style={{
+                aspectRatio: '9/16',
+                background: '#141420',
+                backgroundImage: cut.mediaUrls?.[0] ? `url(${cut.mediaUrls[0]})` : undefined,
+                backgroundSize: 'cover', backgroundPosition: 'center',
+                borderRadius: '4px', cursor: 'pointer', position: 'relative', overflow: 'hidden',
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <svg width={12} height={12} viewBox="0 0 24 24" fill="#fff" stroke="none"><polygon points="5 3 19 12 5 21 5 3" /></svg>
-                  <span style={{ fontSize: '11px', color: '#fff', fontWeight: 600 }}>{(Math.random() * 5 + 1).toFixed(1)}k</span>
-                </div>
+                {cut.caption && (
+                  <div style={{
+                    position: 'absolute', bottom: 0, left: 0, right: 0, padding: '8px',
+                    background: 'linear-gradient(transparent, rgba(0,0,0,0.7))',
+                  }}>
+                    <span style={{ fontSize: '11px', color: '#fff', fontWeight: 500 }}>{cut.caption}</span>
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <div style={{ textAlign: 'center', padding: '40px 20px', color: '#5C5C72' }}>
+            <FilmIcon active={false} />
+            <p style={{ fontSize: '13px', marginTop: '8px' }}>Nenhum cut ainda.</p>
+          </div>
+        )
       )}
 
       {/* Records */}
       {activeTab === 'records' && (
-        <div style={{ background: '#141420', borderRadius: '14px', border: '1px solid rgba(148,148,172,0.08)', overflow: 'hidden', marginTop: '8px' }}>
-          {p.records.map((r, i) => (
-            <div key={r.id} style={{
-              display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px',
-              borderBottom: i < p.records.length - 1 ? '1px solid rgba(148,148,172,0.06)' : 'none',
-            }}>
-              <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(255,184,0,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <TrophySmIcon active={false} />
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ fontSize: '13px', fontWeight: 600, color: '#F0F0F8' }}>{r.exercise}</span>
-                  {r.isNew && <span style={{ fontSize: '8px', fontWeight: 800, background: '#CCFF00', color: '#0A0A0F', padding: '1px 5px', borderRadius: '3px' }}>NOVO</span>}
-                </div>
-                <div style={{ fontSize: '11px', color: '#9494AC', marginTop: '1px' }}>
-                  {r.previousValue} → <span style={{ color: '#CCFF00', fontWeight: 600 }}>{r.currentValue}</span>
-                </div>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
-                <TrendUpIcon />
-                <span style={{ fontSize: '12px', fontWeight: 700, color: '#10B981' }}>{r.improvement}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Achievements grid */}
-      {activeTab === 'achievements' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px', marginTop: '8px' }}>
-          {p.achievements.map(a => {
-            const color = rarityColors[a.rarity];
-            return (
-              <div key={a.id} style={{
-                background: '#141420', borderRadius: '12px', border: `1px solid ${a.unlocked ? `${color}30` : 'rgba(148,148,172,0.08)'}`,
-                padding: '14px', opacity: a.unlocked ? 1 : 0.6,
+        p.records.length > 0 ? (
+          <div style={{ background: '#141420', borderRadius: '14px', border: '1px solid rgba(148,148,172,0.08)', overflow: 'hidden', marginTop: '8px' }}>
+            {p.records.map((r, i) => (
+              <div key={r.id} style={{
+                display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px',
+                borderBottom: i < p.records.length - 1 ? '1px solid rgba(148,148,172,0.06)' : 'none',
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
-                  <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: `${color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    {achieveIcons[a.icon] || <MedalIcon active={false} />}
-                  </div>
-                  <span style={{ fontSize: '8px', fontWeight: 700, color, textTransform: 'uppercase' }}>{a.rarity}</span>
+                <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(255,184,0,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <TrophySmIcon active={false} />
                 </div>
-                <div style={{ fontSize: '12px', fontWeight: 700, color: '#F0F0F8', marginBottom: '2px' }}>{a.title}</div>
-                <div style={{ fontSize: '10px', color: '#5C5C72', lineHeight: 1.4 }}>{a.description}</div>
-                {!a.unlocked && a.progress !== undefined && (
-                  <div style={{ marginTop: '6px' }}>
-                    <div style={{ height: '3px', borderRadius: '2px', background: '#1A1A28' }}>
-                      <div style={{ height: '100%', width: `${a.progress}%`, borderRadius: '2px', background: color }} />
-                    </div>
-                    <div style={{ fontSize: '9px', color: '#5C5C72', marginTop: '2px' }}>{a.progress}%</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ fontSize: '13px', fontWeight: 600, color: '#F0F0F8' }}>{r.exercise}</span>
+                    {r.isNew && <span style={{ fontSize: '8px', fontWeight: 800, background: '#CCFF00', color: '#0A0A0F', padding: '1px 5px', borderRadius: '3px' }}>NOVO</span>}
                   </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Routine tab */}
-      {activeTab === 'routine' && (
-        <div style={{ marginTop: '8px' }}>
-          {/* Weight/Height card */}
-          <div style={{
-            background: '#141420', borderRadius: '14px', border: '1px solid rgba(148,148,172,0.08)',
-            padding: '16px', marginBottom: '12px',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-              <span style={{ fontSize: '13px', fontWeight: 700, color: '#5C5C72', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Medidas Corporais</span>
-              <button onClick={() => setEditingBody(!editingBody)} style={{
-                background: 'none', border: 'none', color: '#FF6B35', fontSize: '12px', fontWeight: 600, cursor: 'pointer',
-              }}>{editingBody ? 'Salvar' : 'Editar'}</button>
-            </div>
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <div style={{ flex: 1, background: '#0E0E16', borderRadius: '12px', padding: '14px', textAlign: 'center', border: '1px solid rgba(148,148,172,0.06)' }}>
-                <div style={{ fontSize: '10px', fontWeight: 600, color: '#5C5C72', textTransform: 'uppercase', marginBottom: '6px' }}>Peso</div>
-                {editingBody ? (
-                  <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: '4px' }}>
-                    <input type="number" value={weight} onChange={e => setWeight(e.target.value)}
-                      style={{ width: '60px', background: 'transparent', border: 'none', borderBottom: '2px solid #FF6B35', color: '#F0F0F8', fontSize: '22px', fontWeight: 800, textAlign: 'center', outline: 'none' }} />
-                    <span style={{ fontSize: '13px', color: '#5C5C72' }}>kg</span>
+                  <div style={{ fontSize: '11px', color: '#9494AC', marginTop: '1px' }}>
+                    {r.previousValue} → <span style={{ color: '#CCFF00', fontWeight: 600 }}>{r.currentValue}</span>
                   </div>
-                ) : (
-                  <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: '4px' }}>
-                    <span style={{ fontSize: '22px', fontWeight: 800, color: '#F0F0F8' }}>{weight}</span>
-                    <span style={{ fontSize: '13px', color: '#5C5C72' }}>kg</span>
-                  </div>
-                )}
-              </div>
-              <div style={{ flex: 1, background: '#0E0E16', borderRadius: '12px', padding: '14px', textAlign: 'center', border: '1px solid rgba(148,148,172,0.06)' }}>
-                <div style={{ fontSize: '10px', fontWeight: 600, color: '#5C5C72', textTransform: 'uppercase', marginBottom: '6px' }}>Altura</div>
-                {editingBody ? (
-                  <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: '4px' }}>
-                    <input type="number" value={height} onChange={e => setHeight(e.target.value)}
-                      style={{ width: '60px', background: 'transparent', border: 'none', borderBottom: '2px solid #FF6B35', color: '#F0F0F8', fontSize: '22px', fontWeight: 800, textAlign: 'center', outline: 'none' }} />
-                    <span style={{ fontSize: '13px', color: '#5C5C72' }}>cm</span>
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: '4px' }}>
-                    <span style={{ fontSize: '22px', fontWeight: 800, color: '#F0F0F8' }}>{height}</span>
-                    <span style={{ fontSize: '13px', color: '#5C5C72' }}>cm</span>
-                  </div>
-                )}
-              </div>
-              <div style={{ flex: 1, background: '#0E0E16', borderRadius: '12px', padding: '14px', textAlign: 'center', border: '1px solid rgba(148,148,172,0.06)' }}>
-                <div style={{ fontSize: '10px', fontWeight: 600, color: '#5C5C72', textTransform: 'uppercase', marginBottom: '6px' }}>IMC</div>
-                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: '4px' }}>
-                  <span style={{ fontSize: '22px', fontWeight: 800, color: '#CCFF00' }}>
-                    {(Number(weight) / Math.pow(Number(height) / 100, 2)).toFixed(1)}
-                  </span>
                 </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Activity rings compact */}
-          <div style={{
-            background: '#141420', borderRadius: '14px', border: '1px solid rgba(148,148,172,0.08)',
-            padding: '14px', marginBottom: '12px', display: 'flex', justifyContent: 'space-around',
-          }}>
-            <ActivityRing label="Cal" current={p.activityRings.calories.current} goal={p.activityRings.calories.goal} color="#FF6B35" size={48} />
-            <ActivityRing label="Treino" current={p.activityRings.workouts.current} goal={p.activityRings.workouts.goal} color="#00D4FF" size={48} />
-            <ActivityRing label="Tempo" current={p.activityRings.activeTime.current} goal={p.activityRings.activeTime.goal} color="#A855F7" size={48} />
-            <ActivityRing label="Água" current={p.activityRings.hydration.current} goal={p.activityRings.hydration.goal} color="#10B981" size={48} />
-          </div>
-
-          {/* Routines section header */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-            <span style={{ fontSize: '13px', fontWeight: 700, color: '#5C5C72', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Minhas Rotinas</span>
-            <Link href="/routines/new" style={{
-              textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px',
-              fontSize: '12px', fontWeight: 600, color: '#FF6B35',
-            }}>
-              + Nova Rotina
-            </Link>
-          </div>
-
-          {/* Routine cards from history */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {p.history.slice(0, 5).map(h => (
-              <div key={h.id} style={{
-                background: '#141420', borderRadius: '12px', border: '1px solid rgba(148,148,172,0.08)',
-                padding: '14px 16px',
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                  <span style={{ fontSize: '14px', fontWeight: 600, color: '#F0F0F8' }}>{h.name}</span>
-                  <span style={{ fontSize: '11px', color: '#5C5C72' }}>{h.duration}</span>
-                </div>
-                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '8px' }}>
-                  {h.exercises.slice(0, 4).map(e => (
-                    <span key={e} style={{ fontSize: '10px', background: 'rgba(255,107,53,0.08)', color: '#FF8050', padding: '2px 8px', borderRadius: '4px', fontWeight: 500 }}>{e}</span>
-                  ))}
-                </div>
-                <div style={{ display: 'flex', gap: '12px', fontSize: '11px', color: '#5C5C72' }}>
-                  <span>{h.volume}</span>
-                  <span>{h.sets} séries</span>
-                  <span>{h.calories} cal</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                  <TrendUpIcon />
+                  <span style={{ fontSize: '12px', fontWeight: 700, color: '#10B981' }}>{r.improvement}</span>
                 </div>
               </div>
             ))}
           </div>
-
-          {/* Link to full routines page */}
-          <Link href="/routines" style={{
-            textDecoration: 'none', display: 'block', textAlign: 'center',
-            padding: '14px', borderRadius: '12px', marginTop: '12px',
-            background: '#141420', border: '1px solid rgba(148,148,172,0.08)',
-            color: '#9494AC', fontSize: '13px', fontWeight: 600,
-          }}>
-            Ver todas as rotinas
-          </Link>
-        </div>
+        ) : (
+          <div style={{ textAlign: 'center', padding: '40px 20px', color: '#5C5C72' }}>
+            <TrophySmIcon active={false} />
+            <p style={{ fontSize: '13px', marginTop: '8px' }}>Nenhum recorde pessoal ainda.</p>
+          </div>
+        )
       )}
+
+      {/* Achievements grid */}
+      {activeTab === 'achievements' && (
+        p.achievements.length > 0 ? (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px', marginTop: '8px' }}>
+            {p.achievements.map(a => {
+              const color = rarityColors[a.rarity];
+              return (
+                <div key={a.id} style={{
+                  background: '#141420', borderRadius: '12px', border: `1px solid ${a.unlocked ? `${color}30` : 'rgba(148,148,172,0.08)'}`,
+                  padding: '14px', opacity: a.unlocked ? 1 : 0.6,
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+                    <span style={{ fontSize: '8px', fontWeight: 700, color, textTransform: 'uppercase' }}>{a.rarity}</span>
+                  </div>
+                  <div style={{ fontSize: '12px', fontWeight: 700, color: '#F0F0F8', marginBottom: '2px' }}>{a.title}</div>
+                  <div style={{ fontSize: '10px', color: '#5C5C72', lineHeight: 1.4 }}>{a.description}</div>
+                  {!a.unlocked && a.progress !== undefined && (
+                    <div style={{ marginTop: '6px' }}>
+                      <div style={{ height: '3px', borderRadius: '2px', background: '#1A1A28' }}>
+                        <div style={{ height: '100%', width: `${a.progress}%`, borderRadius: '2px', background: color }} />
+                      </div>
+                      <div style={{ fontSize: '9px', color: '#5C5C72', marginTop: '2px' }}>{a.progress}%</div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div style={{ textAlign: 'center', padding: '40px 20px', color: '#5C5C72' }}>
+            <MedalIcon active={false} />
+            <p style={{ fontSize: '13px', marginTop: '8px' }}>Nenhuma conquista ainda.</p>
+          </div>
+        )
+      )}
+
+      {/* Routine tab */}
+      {activeTab === 'routine' && <RoutineTab />}
 
       {/* Member since */}
       <div style={{ textAlign: 'center', marginTop: '24px', fontSize: '11px', color: '#5C5C72' }}>

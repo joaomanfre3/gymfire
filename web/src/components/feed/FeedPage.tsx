@@ -39,14 +39,14 @@ export default function FeedPage() {
                 id: user?.id || '',
                 name: user?.displayName || 'Usuário',
                 username: user?.username || 'user',
-                avatar: user?.avatarUrl || `https://i.pravatar.cc/96?u=${user?.id || ''}`,
+                avatar: user?.avatarUrl || '',
                 isVerified: false,
                 level: 1,
               },
               type: 'workout' as const,
               content: {
                 text: (p.content as string) || '',
-                images: workout ? ['https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=600&h=750&fit=crop'] : undefined,
+                images: (p.mediaUrls as string[])?.length > 0 ? (p.mediaUrls as string[]) : undefined,
               },
               workout: workout ? {
                 name: workout.title || 'Treino',
