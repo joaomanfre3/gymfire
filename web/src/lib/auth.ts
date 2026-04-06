@@ -26,7 +26,7 @@ export async function verifyPassword(plain: string, hash: string): Promise<boole
 }
 
 export function createAccessToken(userId: string, username: string): string {
-  return jwt.sign({ userId, username }, jwtSecret, { expiresIn: '15m' });
+  return jwt.sign({ userId, username }, jwtSecret, { expiresIn: '7d' });
 }
 
 export function createRefreshToken(userId: string): string {

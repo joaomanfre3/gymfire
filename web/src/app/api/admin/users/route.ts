@@ -55,6 +55,13 @@ export async function PATCH(request: Request) {
     case 'premium': updates.isPremium = value !== false; break;
     case 'promote': updates.role = 'ADMIN'; break;
     case 'demote': updates.role = 'USER'; break;
+    case 'edit':
+      if (value?.displayName) updates.displayName = value.displayName;
+      if (value?.username) updates.username = value.username;
+      if (value?.email) updates.email = value.email;
+      if (value?.bio !== undefined) updates.bio = value.bio;
+      if (Object.keys(updates).length === 0) return NextResponse.json({ error: 'Nenhum campo para editar' }, { status: 400 });
+      break;
     default:
       return NextResponse.json({ error: 'Ação inválida' }, { status: 400 });
   }
@@ -66,4 +73,54 @@ export async function PATCH(request: Request) {
   });
 
   return NextResponse.json(user);
+}
+
+// DELETE - delete user
+export async function DELETE(request: Request) {
+  const admin = await getAdminUser(request);
+  if (!admin) return adminUnauthorized();
+
+  const { userId } = await request.json();
+  if (!userId) return NextResponse.json({ error: 'userId obrigatório' }, { status: 400 });
+  if (userId === admin.id) return NextResponse.json({ error: 'Não pode deletar a si mesmo' }, { status: 400 });
+
+  await prisma.user.delete({ where: { id: userId } });
+  return NextResponse.json({ success: true });
+}
+
+// POST - create user or impersonate
+export async function POST(request: Request) {
+  const admin = await getAdminUser(request);
+  if (!admin) return adminUnauthorized();
+
+  const { action, ...data } = await request.json();
+
+  if (action === 'impersonate') {
+    const target = await prisma.user.findUnique({ where: { id: data.userId } });
+    if (!target) return NextResponse.json({ error: 'Usuário não encontrado' }, { status: 404 });
+    // Return user data for client-side impersonation
+    return NextResponse.json({
+      id: target.id,
+      username: target.username,
+      displayName: target.displayName,
+      email: target.email,
+      role: target.role,
+    });
+  }
+
+  if (action === 'create') {
+    const { username, displayName, email, password } = data;
+    if (!username || !displayName || !email || !password) {
+      return NextResponse.json({ error: 'username, displayName, email e password são obrigatórios' }, { status: 400 });
+    }
+    const { hashPassword } = await import('@/lib/auth');
+    const hashed = await hashPassword(password);
+    const user = await prisma.user.create({
+      data: { username, displayName, email, passwordHash: hashed },
+      select: { id: true, username: true, displayName: true, email: true, role: true },
+    });
+    return NextResponse.json(user, { status: 201 });
+  }
+
+  return NextResponse.json({ error: 'Ação inválida' }, { status: 400 });
 }

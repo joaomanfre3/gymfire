@@ -199,16 +199,18 @@ export default function ProfilePage() {
 
           {/* Stats row */}
           <div style={{ display: 'flex', gap: '20px', marginBottom: '8px' }}>
-            {[
-              { v: p.social.posts, l: 'posts' },
-              { v: p.social.followers, l: 'seguidores' },
-              { v: p.social.following, l: 'seguindo' },
-            ].map(s => (
-              <div key={s.l} style={{ cursor: 'pointer' }}>
-                <span style={{ fontSize: '16px', fontWeight: 700, color: '#F0F0F8' }}>{s.v}</span>
-                <span style={{ fontSize: '13px', color: '#9494AC', marginLeft: '4px' }}>{s.l}</span>
-              </div>
-            ))}
+            <div>
+              <span style={{ fontSize: '16px', fontWeight: 700, color: '#F0F0F8' }}>{p.social.posts}</span>
+              <span style={{ fontSize: '13px', color: '#9494AC', marginLeft: '4px' }}>posts</span>
+            </div>
+            <Link href={`/profile/${p.username}/followers`} style={{ textDecoration: 'none' }}>
+              <span style={{ fontSize: '16px', fontWeight: 700, color: '#F0F0F8' }}>{p.social.followers}</span>
+              <span style={{ fontSize: '13px', color: '#9494AC', marginLeft: '4px' }}>seguidores</span>
+            </Link>
+            <Link href={`/profile/${p.username}/following`} style={{ textDecoration: 'none' }}>
+              <span style={{ fontSize: '16px', fontWeight: 700, color: '#F0F0F8' }}>{p.social.following}</span>
+              <span style={{ fontSize: '13px', color: '#9494AC', marginLeft: '4px' }}>seguindo</span>
+            </Link>
           </div>
         </div>
       </div>

@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import { apiFetch, getToken, getUser } from '@/lib/api';
-import { getAvatarColor } from '@/lib/avatar';
+import { getTier } from '@/lib/profile-types';
 
 interface PublicProfile {
   id: string;
@@ -13,209 +14,234 @@ interface PublicProfile {
   bio?: string;
   avatarUrl?: string;
   isVerified: boolean;
-  isPremium: boolean;
   totalPoints: number;
   currentStreak: number;
   createdAt: string;
   followersCount: number;
   followingCount: number;
   workoutsCount: number;
+  postsCount?: number;
 }
 
 export default function PublicProfilePage() {
   const { username } = useParams<{ username: string }>();
+  const router = useRouter();
   const [profile, setProfile] = useState<PublicProfile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [following, setFollowing] = useState(false);
+  const [isFollowing, setIsFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
+  const [checkingFollow, setCheckingFollow] = useState(true);
+
+  const currentUser = getUser();
+  const isOwnProfile = currentUser?.username === username;
 
   useEffect(() => {
+    if (isOwnProfile) { router.replace('/profile'); return; }
     loadProfile();
-  }, [username]);
+  }, [username, isOwnProfile, router]);
 
   async function loadProfile() {
     try {
       const res = await apiFetch(`/api/users/${username}`);
       if (res.ok) {
-        setProfile(await res.json());
+        const data = await res.json();
+        setProfile(data);
+        // Check if following
+        if (getToken() && data.id) {
+          checkFollowStatus(data.id);
+        } else {
+          setCheckingFollow(false);
+        }
       }
-    } catch { /* ignore */ } finally {
-      setLoading(false);
-    }
+    } catch { /* ignore */ }
+    setLoading(false);
+  }
+
+  async function checkFollowStatus(userId: string) {
+    try {
+      // Try to get followers list and check
+      const res = await apiFetch(`/api/users/${username}/followers`);
+      if (res.ok) {
+        const followers = await res.json();
+        const me = currentUser?.id;
+        setIsFollowing(followers.some((f: { id: string }) => f.id === me));
+      }
+    } catch { /* ignore */ }
+    setCheckingFollow(false);
   }
 
   async function handleFollow() {
-    if (!getToken()) {
-      alert('Faça login para seguir usuários');
-      return;
-    }
+    if (!getToken()) { router.push('/login'); return; }
     if (!profile) return;
     setFollowLoading(true);
     try {
-      if (following) {
+      if (isFollowing) {
         const res = await apiFetch(`/api/social/follow/${profile.id}`, { method: 'DELETE' });
         if (res.ok) {
-          setFollowing(false);
+          setIsFollowing(false);
           setProfile(prev => prev ? { ...prev, followersCount: prev.followersCount - 1 } : prev);
         }
       } else {
         const res = await apiFetch(`/api/social/follow/${profile.id}`, { method: 'POST' });
-        if (res.ok) {
-          setFollowing(true);
-          setProfile(prev => prev ? { ...prev, followersCount: prev.followersCount + 1 } : prev);
-        } else if (res.status === 409) {
-          setFollowing(true);
+        if (res.ok || res.status === 409) {
+          setIsFollowing(true);
+          if (res.ok) setProfile(prev => prev ? { ...prev, followersCount: prev.followersCount + 1 } : prev);
         }
       }
-    } catch { /* ignore */ } finally {
-      setFollowLoading(false);
-    }
+    } catch { /* ignore */ }
+    setFollowLoading(false);
   }
 
-  const currentUser = getUser();
-  const isOwnProfile = currentUser && profile && currentUser.username === profile.username;
+  if (loading) {
+    return (
+      <div style={{ minHeight: '100vh', background: '#0A0A0F' }}>
+        <Navbar />
+        <div style={{ maxWidth: '480px', margin: '0 auto', padding: '40px 16px', textAlign: 'center' }}>
+          <div className="shimmer" style={{ width: '80px', height: '80px', borderRadius: '50%', margin: '0 auto 16px', background: '#141420' }} />
+          <div className="shimmer" style={{ width: '160px', height: '20px', borderRadius: '6px', margin: '0 auto 8px', background: '#141420' }} />
+          <div className="shimmer" style={{ width: '100px', height: '14px', borderRadius: '4px', margin: '0 auto', background: '#141420' }} />
+        </div>
+      </div>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <div style={{ minHeight: '100vh', background: '#0A0A0F' }}>
+        <Navbar />
+        <div style={{ maxWidth: '480px', margin: '0 auto', padding: '60px 16px', textAlign: 'center' }}>
+          <p style={{ color: '#5C5C72', fontSize: '16px' }}>Usuário não encontrado.</p>
+        </div>
+      </div>
+    );
+  }
+
+  const level = Math.max(1, Math.floor(profile.totalPoints / 500));
+  const tier = getTier(level);
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--background)' }}>
+    <div style={{ minHeight: '100vh', background: '#0A0A0F' }}>
       <Navbar />
-      <main style={{ maxWidth: '600px', margin: '0 auto', padding: '1.5rem 1rem' }}>
-        {loading ? (
-          <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
-            <span style={{ fontSize: '0.85rem', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Carregando perfil...</span>
-          </div>
-        ) : !profile ? (
-          <div className="animate-in" style={{
-            textAlign: 'center', padding: '3rem',
-            background: 'var(--surface)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)',
-            color: 'var(--text-secondary)', boxShadow: 'var(--shadow-card)',
-          }}>
-            Usuário não encontrado.
-          </div>
-        ) : (
-          <div className="animate-in" style={{
-            background: 'var(--surface)',
-            border: '1px solid var(--border)',
-            borderRadius: 'var(--radius-xl)',
-            padding: '2rem',
-            boxShadow: '0 8px 40px rgba(0, 0, 0, 0.3)',
-            position: 'relative',
-            overflow: 'hidden',
-          }}>
-            {/* Background decorative glow */}
+      <main style={{ maxWidth: '480px', margin: '0 auto', padding: '20px 16px 80px' }}>
+
+        {/* Instagram-style header */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '20px', marginBottom: '16px' }}>
+          {/* Avatar */}
+          <div style={{ position: 'relative', flexShrink: 0 }}>
             <div style={{
-              position: 'absolute',
-              top: '-50px',
-              left: '50%',
-              transform: 'translateX(-50%)',
-              width: '200px',
-              height: '200px',
-              background: `radial-gradient(circle, ${getAvatarColor(profile.displayName)}15, transparent 70%)`,
-              pointerEvents: 'none',
-            }} />
-
-            <div style={{ textAlign: 'center', marginBottom: '1.5rem', position: 'relative' }}>
-              <div style={{
-                width: '88px', height: '88px', borderRadius: '50%',
-                background: `linear-gradient(135deg, ${getAvatarColor(profile.displayName)}, ${getAvatarColor(profile.displayName)}cc)`,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: '#fff', fontWeight: 900, fontSize: '2.2rem',
-                margin: '0 auto 0.85rem',
-                boxShadow: `0 0 30px ${getAvatarColor(profile.displayName)}33, 0 0 60px ${getAvatarColor(profile.displayName)}11`,
-                border: `3px solid ${getAvatarColor(profile.displayName)}44`,
-                fontFamily: "'Orbitron', sans-serif",
-              }}>
-                {profile.displayName[0].toUpperCase()}
-              </div>
-              <h1 style={{ fontSize: '1.4rem', fontWeight: 800, margin: '0 0 0.15rem' }}>
-                {profile.displayName}
-                {profile.isVerified && <span style={{ color: 'var(--accent)', marginLeft: '0.35rem', textShadow: '0 0 8px rgba(0,240,212,0.3)' }}>&#x2713;</span>}
-              </h1>
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: 0, letterSpacing: '0.02em' }}>@{profile.username}</p>
-              {profile.bio && (
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', marginTop: '0.6rem', lineHeight: 1.5 }}>{profile.bio}</p>
-              )}
-
-              {!isOwnProfile && (
-                <button
-                  onClick={handleFollow}
-                  disabled={followLoading}
-                  className={!following ? 'btn-glow' : ''}
-                  style={{
-                    marginTop: '1rem',
-                    padding: '0.55rem 1.75rem',
-                    background: following ? 'transparent' : 'linear-gradient(135deg, var(--primary), var(--primary-dark))',
-                    color: following ? 'var(--primary)' : '#fff',
-                    border: following ? '1px solid rgba(255, 107, 53, 0.3)' : 'none',
-                    borderRadius: 'var(--radius-sm)',
-                    fontWeight: 700,
-                    fontSize: '0.82rem',
-                    cursor: followLoading ? 'not-allowed' : 'pointer',
-                    letterSpacing: '0.05em',
-                    textTransform: 'uppercase',
-                    boxShadow: following ? 'none' : '0 0 15px rgba(255, 107, 53, 0.2)',
-                    transition: 'all 0.25s',
-                  }}
-                >
-                  {followLoading ? '...' : following ? 'Seguindo' : 'Seguir'}
-                </button>
-              )}
-            </div>
-
-            {/* Stats */}
-            <div style={{
-              display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)',
-              gap: '0.65rem', marginBottom: '1.5rem',
+              width: '80px', height: '80px', borderRadius: '50%',
+              border: `3px solid ${tier.borderColor}`,
+              boxShadow: `0 0 20px ${tier.color}33`,
+              background: profile.avatarUrl ? 'transparent' : 'linear-gradient(135deg, #FF6B35, #E05520)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: '#fff', fontWeight: 800, fontSize: '28px', overflow: 'hidden',
             }}>
-              <div style={{
-                background: 'var(--surface-light)', borderRadius: 'var(--radius-md)', padding: '1rem', textAlign: 'center',
-                border: '1px solid rgba(255, 107, 53, 0.06)',
-              }}>
-                <p className="gradient-text" style={{
-                  fontWeight: 900, fontSize: '1.4rem', margin: 0, fontFamily: "'Orbitron', sans-serif",
-                }}>
-                  {profile.totalPoints.toLocaleString()}
-                </p>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.7rem', margin: '0.2rem 0 0', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Pontos</p>
-              </div>
-              <div style={{
-                background: 'var(--surface-light)', borderRadius: 'var(--radius-md)', padding: '1rem', textAlign: 'center',
-                border: '1px solid rgba(0, 240, 212, 0.06)',
-              }}>
-                <p className="accent-gradient-text" style={{
-                  fontWeight: 900, fontSize: '1.4rem', margin: 0, fontFamily: "'Orbitron', sans-serif",
-                }}>
-                  {profile.currentStreak}
-                </p>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.7rem', margin: '0.2rem 0 0', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Sequência</p>
-              </div>
-              <div style={{
-                background: 'var(--surface-light)', borderRadius: 'var(--radius-md)', padding: '1rem', textAlign: 'center',
-                border: '1px solid rgba(16, 185, 129, 0.06)',
-              }}>
-                <p style={{
-                  color: 'var(--success)', fontWeight: 900, fontSize: '1.4rem', margin: 0, fontFamily: "'Orbitron', sans-serif",
-                  textShadow: '0 0 10px rgba(16, 185, 129, 0.2)',
-                }}>
-                  {profile.workoutsCount}
-                </p>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.7rem', margin: '0.2rem 0 0', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Treinos</p>
-              </div>
+              {profile.avatarUrl
+                ? <img src={profile.avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                : profile.displayName[0].toUpperCase()
+              }
             </div>
-
-            {/* Social stats */}
             <div style={{
-              display: 'flex', justifyContent: 'center', gap: '2.5rem',
-              color: 'var(--text-secondary)', fontSize: '0.88rem',
-            }}>
-              <span><strong style={{ color: 'var(--text)', fontWeight: 700 }}>{profile.followersCount}</strong> Seguidores</span>
-              <span><strong style={{ color: 'var(--text)', fontWeight: 700 }}>{profile.followingCount}</strong> Seguindo</span>
+              position: 'absolute', bottom: '-2px', right: '-2px', width: '24px', height: '24px', borderRadius: '50%',
+              background: tier.color, color: '#0A0A0F', fontSize: '10px', fontWeight: 900,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2.5px solid #0A0A0F',
+            }}>{level}</div>
+          </div>
+
+          {/* Stats */}
+          <div style={{ flex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '18px', fontWeight: 700, color: '#F0F0F8' }}>{profile.username}</span>
+              {profile.isVerified && <span style={{ fontSize: '10px', fontWeight: 800, background: '#FF6B35', color: '#0A0A0F', padding: '2px 6px', borderRadius: '4px' }}>PRO</span>}
+              <span style={{ fontSize: '10px', fontWeight: 700, color: tier.color, background: `${tier.color}15`, padding: '2px 8px', borderRadius: '4px' }}>{tier.name}</span>
             </div>
 
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem', textAlign: 'center', marginTop: '1rem', letterSpacing: '0.02em' }}>
-              Membro desde {new Date(profile.createdAt).toLocaleDateString('pt-BR')}
-            </p>
+            {/* Counters - clickable */}
+            <div style={{ display: 'flex', gap: '16px' }}>
+              <div>
+                <span style={{ fontSize: '16px', fontWeight: 700, color: '#F0F0F8' }}>{profile.postsCount || 0}</span>
+                <span style={{ fontSize: '13px', color: '#9494AC', marginLeft: '4px' }}>posts</span>
+              </div>
+              <Link href={`/profile/${profile.username}/followers`} style={{ textDecoration: 'none' }}>
+                <span style={{ fontSize: '16px', fontWeight: 700, color: '#F0F0F8' }}>{profile.followersCount}</span>
+                <span style={{ fontSize: '13px', color: '#9494AC', marginLeft: '4px' }}>seguidores</span>
+              </Link>
+              <Link href={`/profile/${profile.username}/following`} style={{ textDecoration: 'none' }}>
+                <span style={{ fontSize: '16px', fontWeight: 700, color: '#F0F0F8' }}>{profile.followingCount}</span>
+                <span style={{ fontSize: '13px', color: '#9494AC', marginLeft: '4px' }}>seguindo</span>
+              </Link>
+            </div>
           </div>
-        )}
+        </div>
+
+        {/* Display name + bio */}
+        <div style={{ marginBottom: '14px' }}>
+          <div style={{ fontSize: '14px', fontWeight: 700, color: '#F0F0F8' }}>{profile.displayName}</div>
+          {profile.bio && <div style={{ fontSize: '13px', color: '#9494AC', lineHeight: 1.5, marginTop: '2px' }}>{profile.bio}</div>}
+        </div>
+
+        {/* Follow/Message buttons */}
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
+          <button
+            onClick={handleFollow}
+            disabled={followLoading || checkingFollow}
+            style={{
+              flex: 1, padding: '10px', borderRadius: '10px',
+              border: isFollowing ? '1px solid rgba(148, 148, 172, 0.15)' : 'none',
+              background: isFollowing ? 'transparent' : '#FF6B35',
+              color: isFollowing ? '#9494AC' : '#0A0A0F',
+              fontSize: '14px', fontWeight: 700, cursor: 'pointer',
+              transition: 'all 200ms',
+              opacity: followLoading || checkingFollow ? 0.5 : 1,
+            }}
+          >
+            {checkingFollow ? '...' : followLoading ? '...' : isFollowing ? 'Seguindo' : 'Seguir'}
+          </button>
+          <button
+            onClick={async () => {
+              if (!getToken()) { router.push('/login'); return; }
+              try {
+                const res = await apiFetch('/api/conversations', {
+                  method: 'POST',
+                  body: JSON.stringify({ targetUserId: profile.id }),
+                });
+                if (res.ok) {
+                  const data = await res.json();
+                  router.push(`/messages?chat=${data.conversationId}`);
+                }
+              } catch { /* ignore */ }
+            }}
+            style={{
+              flex: 1, padding: '10px', borderRadius: '10px',
+              border: 'none', background: '#141420',
+              color: '#F0F0F8', fontSize: '14px', fontWeight: 600, cursor: 'pointer',
+            }}
+          >
+            Mensagem
+          </button>
+        </div>
+
+        {/* Stats cards */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '16px' }}>
+          {[
+            { value: profile.totalPoints.toLocaleString(), label: 'XP', color: '#CCFF00' },
+            { value: String(profile.currentStreak), label: 'Streak', color: '#FF6B35' },
+            { value: String(profile.workoutsCount), label: 'Treinos', color: '#00D4FF' },
+          ].map(s => (
+            <div key={s.label} style={{
+              background: '#141420', borderRadius: '12px', border: '1px solid rgba(148,148,172,0.08)',
+              padding: '14px', textAlign: 'center',
+            }}>
+              <div style={{ fontSize: '20px', fontWeight: 800, color: s.color }}>{s.value}</div>
+              <div style={{ fontSize: '11px', color: '#5C5C72', fontWeight: 600, textTransform: 'uppercase', marginTop: '2px' }}>{s.label}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Member since */}
+        <div style={{ textAlign: 'center', fontSize: '11px', color: '#5C5C72' }}>
+          Membro desde {new Date(profile.createdAt).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
+        </div>
       </main>
     </div>
   );
