@@ -26,7 +26,6 @@ export default function FeedPage() {
       if (res.ok) {
         const data = await res.json();
         if (data && data.length > 0) {
-          // Map API data to FeedPost format
           const mapped: FeedPost[] = data.map((p: Record<string, unknown>) => {
             const user = p.user as { id: string; username: string; displayName: string; avatarUrl?: string } | undefined;
             const workout = p.workout as { title?: string; totalVolume?: number; totalSets?: number; durationSecs?: number; sets?: Array<{ exercise: { name: string } }> } | undefined;
@@ -57,7 +56,7 @@ export default function FeedPage() {
               engagement: {
                 likes: counts?.likes || 0,
                 comments: counts?.comments || 0,
-                isLiked: false,
+                isLiked: !!(p.isLiked),
                 isSaved: false,
               },
               xpEarned: 0,
@@ -88,14 +87,16 @@ export default function FeedPage() {
   }, []);
   usePusherChannel('feed', 'new-post', handleNewPost, !loading);
 
-  const handleLike = useCallback(async (postId: string) => {
+  const handleLike = useCallback(async (postId: string, unlike: boolean) => {
     if (!getToken()) return;
     try {
-      await apiFetch(`/api/social/posts/${postId}/like`, { method: 'POST' });
+      if (unlike) {
+        await apiFetch(`/api/social/posts/${postId}/like`, { method: 'DELETE' });
+      } else {
+        await apiFetch(`/api/social/posts/${postId}/like`, { method: 'POST' });
+      }
     } catch { /* ignore */ }
   }, []);
-
-  const filteredPosts = posts;
 
   return (
     <div style={{
@@ -169,7 +170,7 @@ export default function FeedPage() {
             <PostSkeleton />
             <PostSkeleton />
           </div>
-        ) : filteredPosts.length === 0 ? (
+        ) : posts.length === 0 ? (
           <div style={{
             textAlign: 'center',
             padding: '48px 20px',
@@ -183,7 +184,7 @@ export default function FeedPage() {
           </div>
         ) : (
           <div>
-            {filteredPosts.map(post => (
+            {posts.map(post => (
               <PostCard
                 key={post.id}
                 post={post}

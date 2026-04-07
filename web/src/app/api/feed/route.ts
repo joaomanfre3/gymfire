@@ -64,6 +64,11 @@ export async function GET(request: Request) {
             },
           },
         },
+        likes: user ? {
+          where: { userId: user.id },
+          select: { id: true },
+          take: 1,
+        } : false,
         _count: {
           select: {
             likes: true,
@@ -76,7 +81,13 @@ export async function GET(request: Request) {
       take: limit,
     });
 
-    return NextResponse.json(posts);
+    const result = posts.map(post => ({
+      ...post,
+      isLiked: user ? (post.likes && Array.isArray(post.likes) && post.likes.length > 0) : false,
+      likes: undefined,
+    }));
+
+    return NextResponse.json(result);
   } catch (error) {
     console.error('Feed error:', error);
     return NextResponse.json(

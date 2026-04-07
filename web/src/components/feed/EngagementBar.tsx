@@ -9,9 +9,11 @@ interface Props {
   isLiked: boolean;
   xpEarned: number;
   onLike: () => void;
+  onComment: () => void;
+  onShare: () => void;
 }
 
-export default function EngagementBar({ likes, comments, isLiked, xpEarned, onLike }: Props) {
+export default function EngagementBar({ likes, comments, isLiked, xpEarned, onLike, onComment, onShare }: Props) {
   const [animating, setAnimating] = useState(false);
 
   const handleLike = () => {
@@ -33,14 +35,9 @@ export default function EngagementBar({ likes, comments, isLiked, xpEarned, onLi
       <button
         onClick={handleLike}
         style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '6px',
-          padding: '8px 10px',
-          borderRadius: '8px',
-          background: 'transparent',
-          border: 'none',
-          cursor: 'pointer',
+          display: 'flex', alignItems: 'center', gap: '6px',
+          padding: '8px 10px', borderRadius: '8px',
+          background: 'transparent', border: 'none', cursor: 'pointer',
           transition: 'background 150ms ease',
         }}
         onMouseEnter={e => (e.currentTarget.style.background = '#1A1A28')}
@@ -54,23 +51,18 @@ export default function EngagementBar({ likes, comments, isLiked, xpEarned, onLi
           {isLiked ? <HeartFilledIcon size={22} /> : <HeartIcon size={22} color="#9494AC" />}
         </span>
         <span style={{
-          fontSize: '13px',
-          fontWeight: 600,
+          fontSize: '13px', fontWeight: 600,
           color: isLiked ? '#FF4D6A' : '#9494AC',
         }}>{likes}</span>
       </button>
 
       {/* Comment */}
       <button
+        onClick={onComment}
         style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '6px',
-          padding: '8px 10px',
-          borderRadius: '8px',
-          background: 'transparent',
-          border: 'none',
-          cursor: 'pointer',
+          display: 'flex', alignItems: 'center', gap: '6px',
+          padding: '8px 10px', borderRadius: '8px',
+          background: 'transparent', border: 'none', cursor: 'pointer',
           transition: 'background 150ms ease',
         }}
         onMouseEnter={e => (e.currentTarget.style.background = '#1A1A28')}
@@ -82,15 +74,11 @@ export default function EngagementBar({ likes, comments, isLiked, xpEarned, onLi
 
       {/* Share */}
       <button
+        onClick={onShare}
         style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '6px',
-          padding: '8px 10px',
-          borderRadius: '8px',
-          background: 'transparent',
-          border: 'none',
-          cursor: 'pointer',
+          display: 'flex', alignItems: 'center', gap: '6px',
+          padding: '8px 10px', borderRadius: '8px',
+          background: 'transparent', border: 'none', cursor: 'pointer',
           transition: 'background 150ms ease',
         }}
         onMouseEnter={e => (e.currentTarget.style.background = '#1A1A28')}
@@ -103,19 +91,12 @@ export default function EngagementBar({ likes, comments, isLiked, xpEarned, onLi
       {xpEarned > 0 && (
         <div style={{
           marginLeft: 'auto',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '4px',
-          padding: '3px 8px',
-          borderRadius: '6px',
+          display: 'flex', alignItems: 'center', gap: '4px',
+          padding: '3px 8px', borderRadius: '6px',
           background: 'rgba(204, 255, 0, 0.08)',
         }}>
           <ZapIcon size={13} />
-          <span style={{
-            fontSize: '12px',
-            fontWeight: 700,
-            color: '#CCFF00',
-          }}>+{xpEarned} XP</span>
+          <span style={{ fontSize: '12px', fontWeight: 700, color: '#CCFF00' }}>+{xpEarned} XP</span>
         </div>
       )}
     </div>
