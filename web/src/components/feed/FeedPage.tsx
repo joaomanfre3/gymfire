@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { getToken, apiFetch } from '@/lib/api';
+import { getToken, getUser, apiFetch } from '@/lib/api';
 import { usePusherChannel } from '@/hooks/usePusher';
 import type { FeedPost } from '@/lib/feed-types';
 import DropsBar from './DropsBar';
@@ -14,9 +14,12 @@ export default function FeedPage() {
   const [posts, setPosts] = useState<FeedPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [loggedIn, setLoggedIn] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | undefined>();
 
   useEffect(() => {
     setLoggedIn(!!getToken());
+    const u = getUser();
+    if (u?.id) setCurrentUserId(u.id);
     loadFeed();
   }, []);
 
@@ -188,7 +191,9 @@ export default function FeedPage() {
               <PostCard
                 key={post.id}
                 post={post}
+                currentUserId={currentUserId}
                 onLike={handleLike}
+                onDelete={(id) => setPosts(prev => prev.filter(p => p.id !== id))}
               />
             ))}
           </div>
