@@ -43,7 +43,7 @@ export default function FeedPage() {
               },
               type: 'workout' as const,
               content: {
-                text: (p.content as string) || '',
+                text: (p.caption as string) || (p.content as string) || '',
                 images: (p.mediaUrls as string[])?.length > 0 ? (p.mediaUrls as string[]) : undefined,
               },
               workout: workout ? {
