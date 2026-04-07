@@ -1,9 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getAuthUser } from '@/lib/auth';
-import { writeFile, mkdir } from 'fs/promises';
-import path from 'path';
+import { put } from '@vercel/blob';
 
-// POST - upload media file for drop
 export async function POST(request: Request) {
   try {
     const user = await getAuthUser(request);
@@ -13,23 +11,17 @@ export async function POST(request: Request) {
     const file = formData.get('file') as File | null;
     if (!file) return NextResponse.json({ error: 'No file' }, { status: 400 });
 
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-
-    // Determine media type
     const isVideo = file.type.startsWith('video/');
-    const ext = isVideo ? 'mp4' : 'jpg';
-    const fileName = `drop_${user.id}_${Date.now()}.${ext}`;
+    const ext = isVideo ? 'webm' : 'jpg';
+    const fileName = `drops/drop_${user.id}_${Date.now()}.${ext}`;
 
-    // Save to public/uploads/drops
-    const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'drops');
-    await mkdir(uploadsDir, { recursive: true });
-    await writeFile(path.join(uploadsDir, fileName), buffer);
-
-    const mediaUrl = `/uploads/drops/${fileName}`;
+    const blob = await put(fileName, file, {
+      access: 'public',
+      contentType: file.type,
+    });
 
     return NextResponse.json({
-      mediaUrl,
+      mediaUrl: blob.url,
       mediaType: isVideo ? 'VIDEO' : 'IMAGE',
     });
   } catch (error) {

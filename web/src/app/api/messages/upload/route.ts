@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getAuthUser } from '@/lib/auth';
-import { writeFile, mkdir } from 'fs/promises';
-import path from 'path';
+import { put } from '@vercel/blob';
 
 export async function POST(request: Request) {
   try {
@@ -12,10 +11,6 @@ export async function POST(request: Request) {
     const file = formData.get('file') as File | null;
     if (!file) return NextResponse.json({ error: 'No file' }, { status: 400 });
 
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-
-    // Determine type and extension
     const mimeType = file.type;
     let subDir = 'files';
     let mediaType = 'IMAGE';
@@ -32,19 +27,18 @@ export async function POST(request: Request) {
     }
 
     const ext = file.name.split('.').pop() || 'bin';
-    const fileName = `msg_${user.id}_${Date.now()}.${ext}`;
+    const fileName = `chat/${subDir}/msg_${user.id}_${Date.now()}.${ext}`;
 
-    const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'chat', subDir);
-    await mkdir(uploadsDir, { recursive: true });
-    await writeFile(path.join(uploadsDir, fileName), buffer);
-
-    const mediaUrl = `/uploads/chat/${subDir}/${fileName}`;
+    const blob = await put(fileName, file, {
+      access: 'public',
+      contentType: mimeType,
+    });
 
     return NextResponse.json({
-      mediaUrl,
+      mediaUrl: blob.url,
       mediaType,
       fileName: file.name,
-      fileSize: buffer.length,
+      fileSize: file.size,
     });
   } catch (error) {
     console.error('Upload message media error:', error);
