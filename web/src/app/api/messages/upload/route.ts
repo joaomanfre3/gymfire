@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getAuthUser } from '@/lib/auth';
-import { put } from '@vercel/blob';
+import { uploadMedia } from '@/lib/cloudinary';
 
 export async function POST(request: Request) {
   try {
@@ -11,34 +11,13 @@ export async function POST(request: Request) {
     const file = formData.get('file') as File | null;
     if (!file) return NextResponse.json({ error: 'No file' }, { status: 400 });
 
-    const mimeType = file.type;
-    let subDir = 'files';
-    let mediaType = 'IMAGE';
-
-    if (mimeType.startsWith('image/')) {
-      subDir = 'images';
-      mediaType = 'IMAGE';
-    } else if (mimeType.startsWith('video/')) {
-      subDir = 'videos';
-      mediaType = 'VIDEO';
-    } else if (mimeType.startsWith('audio/')) {
-      subDir = 'audio';
-      mediaType = 'AUDIO';
-    }
-
-    const ext = file.name.split('.').pop() || 'bin';
-    const fileName = `chat/${subDir}/msg_${user.id}_${Date.now()}.${ext}`;
-
-    const blob = await put(fileName, file, {
-      access: 'public',
-      contentType: mimeType,
-    });
+    const result = await uploadMedia(file, 'chat');
 
     return NextResponse.json({
-      mediaUrl: blob.url,
-      mediaType,
+      mediaUrl: result.url,
+      mediaType: result.mediaType,
       fileName: file.name,
-      fileSize: file.size,
+      fileSize: result.bytes,
     });
   } catch (error) {
     console.error('Upload message media error:', error);
