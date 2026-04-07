@@ -44,11 +44,19 @@ export default function AdminPanelPage() {
   const [activeTab, setActiveTab] = useState<AdminTab>('users');
   const [aiProviders, setAiProviders] = useState<AIProviderItem[]>([]);
   const [aiConfig, setAiConfig] = useState<Record<string, unknown>>({});
-  const [aiUsageData, setAiUsageData] = useState<{ today: { requests: number; capacity: number }; topUsers: Array<{ requestCount: number; user: { username: string; displayName: string; plan: string } }> } | null>(null);
+  const [aiUsageData, setAiUsageData] = useState<{
+    alert: { level: string; message: string; providers: Array<{ name: string; displayName: string; isEnabled: boolean; todayUsed: number; maxRPD: number; percentUsed: number; quality: number }>; totalUsed: number; totalCapacity: number; percentUsed: number };
+    today: { requests: number; capacity: number };
+    topUsers: Array<{ requestCount: number; user: { username: string; displayName: string; plan: string } }>;
+  } | null>(null);
 
   useEffect(() => {
     if (!getToken() || currentUser?.role !== 'ADMIN') { router.push('/'); return; }
     loadData();
+    loadAIUsage(); // Load alerts on mount
+    // Auto-refresh alerts every 30s
+    const interval = setInterval(loadAIUsage, 30000);
+    return () => clearInterval(interval);
   }, [router, currentUser?.role]);
 
   const [loadError, setLoadError] = useState('');
@@ -224,6 +232,33 @@ export default function AdminPanelPage() {
           </div>
         )}
 
+        {/* AI Alert Banner */}
+        {aiUsageData?.alert && aiUsageData.alert.level !== 'ok' && (
+          <div style={{
+            padding: '12px 16px', borderRadius: '12px', marginBottom: '16px',
+            display: 'flex', alignItems: 'center', gap: '12px',
+            background: aiUsageData.alert.level === 'exhausted' ? 'rgba(255,77,106,0.1)' : aiUsageData.alert.level === 'critical' ? 'rgba(255,77,106,0.08)' : 'rgba(255,184,0,0.08)',
+            border: `1px solid ${aiUsageData.alert.level === 'exhausted' ? 'rgba(255,77,106,0.3)' : aiUsageData.alert.level === 'critical' ? 'rgba(255,77,106,0.2)' : 'rgba(255,184,0,0.2)'}`,
+          }}>
+            <span style={{ fontSize: '20px' }}>{aiUsageData.alert.level === 'exhausted' ? '🔴' : aiUsageData.alert.level === 'critical' ? '🟠' : '🟡'}</span>
+            <div style={{ flex: 1 }}>
+              <div style={{
+                fontSize: '13px', fontWeight: 700,
+                color: aiUsageData.alert.level === 'exhausted' ? '#FF4D6A' : aiUsageData.alert.level === 'critical' ? '#FF6B35' : '#FFB800',
+              }}>
+                {aiUsageData.alert.level === 'exhausted' ? 'IA OFFLINE' : aiUsageData.alert.level === 'critical' ? 'IA EM ESTADO CRÍTICO' : 'ATENÇÃO: Uso elevado'}
+              </div>
+              <div style={{ fontSize: '12px', color: '#9494AC', marginTop: '2px' }}>{aiUsageData.alert.message}</div>
+            </div>
+            <div style={{
+              padding: '4px 10px', borderRadius: '8px', fontSize: '12px', fontWeight: 700,
+              background: 'rgba(148,148,172,0.1)', color: '#F0F0F8',
+            }}>
+              {aiUsageData.alert.percentUsed}%
+            </div>
+          </div>
+        )}
+
         {/* Tabs */}
         <div style={{ display: 'flex', gap: '4px', marginBottom: '16px', overflowX: 'auto' }}>
           {([
@@ -345,6 +380,46 @@ export default function AdminPanelPage() {
         {/* ===== AI USAGE TAB ===== */}
         {activeTab === 'ai-usage' && aiUsageData && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {/* Alert card */}
+            {aiUsageData.alert && (
+              <div style={{
+                background: '#141420', borderRadius: '12px', padding: '16px',
+                border: `1px solid ${aiUsageData.alert.level === 'exhausted' ? 'rgba(255,77,106,0.3)' : aiUsageData.alert.level === 'critical' ? 'rgba(255,77,106,0.2)' : aiUsageData.alert.level === 'warning' ? 'rgba(255,184,0,0.2)' : 'rgba(16,185,129,0.2)'}`,
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+                  <span style={{ fontSize: '24px' }}>
+                    {aiUsageData.alert.level === 'exhausted' ? '🔴' : aiUsageData.alert.level === 'critical' ? '🟠' : aiUsageData.alert.level === 'warning' ? '🟡' : '🟢'}
+                  </span>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: '14px', fontWeight: 700, color: '#F0F0F8' }}>
+                      {aiUsageData.alert.level === 'ok' ? 'Tudo certo' : aiUsageData.alert.level === 'warning' ? 'Atenção' : aiUsageData.alert.level === 'critical' ? 'Crítico' : 'IA Offline'}
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#9494AC' }}>{aiUsageData.alert.message}</div>
+                  </div>
+                  <div style={{ fontSize: '28px', fontWeight: 800, color: '#FF6B35' }}>{aiUsageData.alert.percentUsed}%</div>
+                </div>
+                {/* Per-provider bars */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {aiUsageData.alert.providers.filter(p => p.isEnabled).map(p => (
+                    <div key={p.name}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                        <span style={{ fontSize: '11px', color: '#9494AC', fontWeight: 600 }}>{p.displayName} <span style={{ color: '#5C5C72' }}>Q{p.quality}</span></span>
+                        <span style={{ fontSize: '11px', fontVariantNumeric: 'tabular-nums', color: p.percentUsed >= 90 ? '#FF4D6A' : p.percentUsed >= 70 ? '#FFB800' : '#10B981', fontWeight: 600 }}>
+                          {p.todayUsed}/{p.maxRPD} ({p.percentUsed}%)
+                        </span>
+                      </div>
+                      <div style={{ height: '6px', borderRadius: '3px', background: '#1A1A28', overflow: 'hidden' }}>
+                        <div style={{
+                          height: '100%', borderRadius: '3px', transition: 'width 500ms',
+                          width: `${Math.min(100, p.percentUsed)}%`,
+                          background: p.percentUsed >= 90 ? '#FF4D6A' : p.percentUsed >= 70 ? '#FFB800' : '#10B981',
+                        }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             {/* Today summary */}
             <div style={{ background: '#141420', borderRadius: '12px', border: '1px solid rgba(148,148,172,0.08)', padding: '16px', textAlign: 'center' }}>
               <div style={{ fontSize: '32px', fontWeight: 800, color: '#FF6B35' }}>{aiUsageData.today.requests}</div>
@@ -352,7 +427,7 @@ export default function AdminPanelPage() {
               <div style={{ height: '8px', borderRadius: '4px', background: '#1A1A28', marginTop: '12px', overflow: 'hidden' }}>
                 <div style={{
                   height: '100%', borderRadius: '4px',
-                  width: `${Math.min(100, (aiUsageData.today.requests / aiUsageData.today.capacity) * 100)}%`,
+                  width: `${Math.min(100, aiUsageData.today.capacity > 0 ? (aiUsageData.today.requests / aiUsageData.today.capacity) * 100 : 0)}%`,
                   background: 'linear-gradient(90deg, #FF6B35, #FF8050)',
                 }} />
               </div>

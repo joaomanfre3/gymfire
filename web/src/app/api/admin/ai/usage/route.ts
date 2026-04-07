@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getAuthUser } from '@/lib/auth';
+import { getAIAlerts } from '@/lib/ai-router';
 
-// GET - admin view of AI usage stats
+// GET - admin view of AI usage stats + alerts
 export async function GET(request: Request) {
   try {
     const user = await getAuthUser(request);
@@ -11,37 +12,28 @@ export async function GET(request: Request) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const [todayUsage, providers, topUsers, totalConversations] = await Promise.all([
-      // Today's total usage
+    const [todayUsage, topUsers, totalConversations, alert] = await Promise.all([
       prisma.aIUsageDaily.aggregate({
         where: { date: today },
         _sum: { requestCount: true, tokensUsed: true },
       }),
-      // Provider status
-      prisma.aIProvider.findMany({
-        orderBy: { priority: 'asc' },
-        select: { name: true, displayName: true, isEnabled: true, maxRPD: true, todayUsed: true, quality: true },
-      }),
-      // Top users today
       prisma.aIUsageDaily.findMany({
         where: { date: today },
         orderBy: { requestCount: 'desc' },
         take: 20,
         include: { user: { select: { id: true, username: true, displayName: true, plan: true } } },
       }),
-      // Total conversations
       prisma.aIConversation.count(),
+      getAIAlerts(),
     ]);
 
-    const totalCapacity = providers.filter(p => p.isEnabled).reduce((sum, p) => sum + p.maxRPD, 0);
-
     return NextResponse.json({
+      alert,
       today: {
         requests: todayUsage._sum.requestCount || 0,
         tokens: todayUsage._sum.tokensUsed || 0,
-        capacity: totalCapacity,
+        capacity: alert.totalCapacity,
       },
-      providers,
       topUsers,
       totalConversations,
     });
