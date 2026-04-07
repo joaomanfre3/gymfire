@@ -31,6 +31,7 @@ export async function GET(request: Request) {
         id: true, username: true, displayName: true, email: true,
         role: true, isVerified: true, isPremium: true, totalPoints: true,
         currentStreak: true, createdAt: true, bio: true,
+        plan: true, aiEnabled: true, aiLimitOverride: true,
         _count: { select: { workouts: true, posts: true, followers: true, following: true } },
       },
     }),

@@ -40,9 +40,19 @@ function ProfileIcon({ active }: { active: boolean }) {
   );
 }
 
+function AIIcon({ active }: { active: boolean }) {
+  const color = active ? '#FF6B35' : 'currentColor';
+  return (
+    <svg width={22} height={22} viewBox="0 0 24 24" fill={active ? color : 'none'} stroke={color} strokeWidth={1.5}>
+      <path d="M12 2L14.09 8.26L20 9.27L15.55 13.97L16.91 20L12 16.9L7.09 20L8.45 13.97L4 9.27L9.91 8.26L12 2Z" />
+    </svg>
+  );
+}
+
 const navItems = [
   { href: '/', label: 'Feed', icon: (a: boolean) => <HomeIcon active={a} /> },
   { href: '/explore', label: 'Explorar', icon: (a: boolean) => <ExerciseIcon active={a} /> },
+  { href: '/ai', label: 'AI', icon: (a: boolean) => <AIIcon active={a} /> },
   { href: '/messages', label: 'Mensagens', icon: (a: boolean) => <MessageIcon active={a} /> },
   { href: '/profile', label: 'Perfil', icon: (a: boolean) => <ProfileIcon active={a} /> },
 ];

@@ -42,7 +42,7 @@ export async function PUT(
 
     const { userId } = await params;
     const body = await request.json();
-    const { displayName, username, email, bio, role, isVerified, isPremium, isBanned } = body;
+    const { displayName, username, email, bio, role, isVerified, isPremium, isBanned, plan, aiEnabled, aiLimitOverride } = body;
 
     const updateData: Record<string, unknown> = {};
     if (displayName !== undefined) updateData.displayName = displayName;
@@ -52,6 +52,9 @@ export async function PUT(
     if (role !== undefined) updateData.role = role;
     if (isVerified !== undefined) updateData.isVerified = isVerified;
     if (isPremium !== undefined) updateData.isPremium = isPremium;
+    if (plan !== undefined) updateData.plan = plan;
+    if (aiEnabled !== undefined) updateData.aiEnabled = aiEnabled;
+    if (aiLimitOverride !== undefined) updateData.aiLimitOverride = aiLimitOverride;
     if (isBanned !== undefined) {
       // Ban = set role to USER and add a prefix to username to prevent login
       if (isBanned) {

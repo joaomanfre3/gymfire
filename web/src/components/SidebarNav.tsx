@@ -48,9 +48,15 @@ function MessageIcon({ active }: { active: boolean }) {
   return <svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth={1.5}><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" /></svg>;
 }
 
+function AIIcon({ active }: { active: boolean }) {
+  const c = active ? '#F0F0F8' : 'currentColor';
+  return <svg width={24} height={24} viewBox="0 0 24 24" fill={active ? c : 'none'} stroke={c} strokeWidth={1.5}><path d="M12 2L14.09 8.26L20 9.27L15.55 13.97L16.91 20L12 16.9L7.09 20L8.45 13.97L4 9.27L9.91 8.26L12 2Z" /></svg>;
+}
+
 const navItems = [
   { href: '/', label: 'Feed', icon: (a: boolean) => <HomeIcon active={a} /> },
   { href: '/explore', label: 'Explorar', icon: (a: boolean) => <SearchIcon active={a} /> },
+  { href: '/ai', label: 'GymFire AI', icon: (a: boolean) => <AIIcon active={a} /> },
   { href: '/cuts', label: 'Cuts', icon: (a: boolean) => <DumbbellIcon active={a} /> },
   { href: '/messages', label: 'Mensagens', icon: (a: boolean) => <MessageIcon active={a} /> },
 ];

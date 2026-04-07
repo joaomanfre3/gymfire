@@ -11,7 +11,15 @@ interface AdminUser {
   role: string; isVerified: boolean; isPremium: boolean; totalPoints: number;
   currentStreak: number; createdAt: string;
   workoutsCount: number; postsCount: number; followersCount: number; followingCount: number;
+  plan?: string; aiEnabled?: boolean; aiLimitOverride?: number | null;
 }
+
+interface AIProviderItem {
+  id: string; name: string; displayName: string; model: string;
+  isEnabled: boolean; maxRPD: number; todayUsed: number; quality: number; priority: number;
+}
+
+type AdminTab = 'users' | 'ai-config' | 'ai-providers' | 'ai-usage';
 
 interface DashboardStats { totalUsers: number; totalExercises: number; totalWorkouts: number; totalPosts: number; totalConversations: number; }
 
@@ -32,7 +40,11 @@ export default function AdminPanelPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
-  const [editForm, setEditForm] = useState({ displayName: '', username: '', email: '', bio: '', role: '', isVerified: false });
+  const [editForm, setEditForm] = useState({ displayName: '', username: '', email: '', bio: '', role: '', isVerified: false, plan: 'FREE', aiEnabled: true, aiLimitOverride: '' as string });
+  const [activeTab, setActiveTab] = useState<AdminTab>('users');
+  const [aiProviders, setAiProviders] = useState<AIProviderItem[]>([]);
+  const [aiConfig, setAiConfig] = useState<Record<string, unknown>>({});
+  const [aiUsageData, setAiUsageData] = useState<{ today: { requests: number; capacity: number }; topUsers: Array<{ requestCount: number; user: { username: string; displayName: string; plan: string } }> } | null>(null);
 
   useEffect(() => {
     if (!getToken() || currentUser?.role !== 'ADMIN') { router.push('/'); return; }
@@ -109,8 +121,12 @@ export default function AdminPanelPage() {
   async function handleSaveEdit() {
     if (!editingUser) return;
     try {
+      const payload = {
+        ...editForm,
+        aiLimitOverride: editForm.aiLimitOverride ? parseInt(editForm.aiLimitOverride) : null,
+      };
       await apiFetch(`/api/admin/users/${editingUser.id}`, {
-        method: 'PUT', body: JSON.stringify(editForm),
+        method: 'PUT', body: JSON.stringify(payload),
       });
       setEditingUser(null);
       loadData();
@@ -129,6 +145,34 @@ export default function AdminPanelPage() {
         a.click(); URL.revokeObjectURL(url);
       }
     } catch { /* ignore */ }
+  }
+
+  // AI management functions
+  async function loadAIProviders() {
+    try {
+      const res = await apiFetch('/api/admin/ai/providers');
+      if (res.ok) setAiProviders(await res.json());
+    } catch { /* ignore */ }
+  }
+  async function loadAIConfig() {
+    try {
+      const res = await apiFetch('/api/admin/ai/config');
+      if (res.ok) setAiConfig(await res.json());
+    } catch { /* ignore */ }
+  }
+  async function loadAIUsage() {
+    try {
+      const res = await apiFetch('/api/admin/ai/usage');
+      if (res.ok) setAiUsageData(await res.json());
+    } catch { /* ignore */ }
+  }
+  async function toggleProvider(id: string, isEnabled: boolean) {
+    await apiFetch('/api/admin/ai/providers', { method: 'PUT', body: JSON.stringify({ id, isEnabled: !isEnabled }) });
+    loadAIProviders();
+  }
+  async function saveAIConfig(key: string, value: unknown) {
+    await apiFetch('/api/admin/ai/config', { method: 'PUT', body: JSON.stringify({ [key]: value }) });
+    loadAIConfig();
   }
 
   const filtered = search
@@ -180,6 +224,162 @@ export default function AdminPanelPage() {
           </div>
         )}
 
+        {/* Tabs */}
+        <div style={{ display: 'flex', gap: '4px', marginBottom: '16px', overflowX: 'auto' }}>
+          {([
+            { key: 'users' as AdminTab, label: 'Usuários' },
+            { key: 'ai-config' as AdminTab, label: 'IA Config' },
+            { key: 'ai-providers' as AdminTab, label: 'Providers' },
+            { key: 'ai-usage' as AdminTab, label: 'IA Uso' },
+          ]).map(tab => (
+            <button key={tab.key} onClick={() => {
+              setActiveTab(tab.key);
+              if (tab.key === 'ai-config') loadAIConfig();
+              if (tab.key === 'ai-providers') loadAIProviders();
+              if (tab.key === 'ai-usage') { loadAIUsage(); loadAIProviders(); }
+            }} style={{
+              padding: '8px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer',
+              fontSize: '13px', fontWeight: 600, whiteSpace: 'nowrap',
+              background: activeTab === tab.key ? '#FF6B35' : '#141420',
+              color: activeTab === tab.key ? '#0A0A0F' : '#9494AC',
+              transition: 'all 200ms',
+            }}>{tab.label}</button>
+          ))}
+        </div>
+
+        {/* ===== AI CONFIG TAB ===== */}
+        {activeTab === 'ai-config' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {/* Global toggle */}
+            <div style={{ background: '#141420', borderRadius: '12px', border: '1px solid rgba(148,148,172,0.08)', padding: '16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                <span style={{ fontSize: '14px', fontWeight: 700, color: '#F0F0F8' }}>IA Global</span>
+                <button onClick={() => saveAIConfig('globalEnabled', !(aiConfig.globalEnabled as boolean))} style={{
+                  padding: '6px 14px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 700,
+                  background: aiConfig.globalEnabled ? '#10B981' : '#FF4D6A',
+                  color: '#fff',
+                }}>{aiConfig.globalEnabled ? 'ATIVADA' : 'DESATIVADA'}</button>
+              </div>
+              {/* Limits per plan */}
+              <div style={{ fontSize: '12px', fontWeight: 700, color: '#5C5C72', marginBottom: '8px', textTransform: 'uppercase' }}>Limites diários por plano</div>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                {['FREE', 'PLUS', 'PRO'].map(plan => {
+                  const limits = (aiConfig.limits || {}) as Record<string, number>;
+                  return (
+                    <div key={plan} style={{ flex: 1 }}>
+                      <label style={{ fontSize: '11px', color: '#9494AC', display: 'block', marginBottom: '4px' }}>{plan}</label>
+                      <input type="number" defaultValue={limits[plan] || 0}
+                        onBlur={e => { const newLimits = { ...limits, [plan]: parseInt(e.target.value) || 0 }; saveAIConfig('limits', newLimits); }}
+                        style={{ width: '100%', padding: '8px', borderRadius: '8px', background: '#1A1A28', border: '1px solid rgba(148,148,172,0.08)', color: '#F0F0F8', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+            {/* System prompt */}
+            <div style={{ background: '#141420', borderRadius: '12px', border: '1px solid rgba(148,148,172,0.08)', padding: '16px' }}>
+              <div style={{ fontSize: '14px', fontWeight: 700, color: '#F0F0F8', marginBottom: '8px' }}>System Prompt</div>
+              <textarea defaultValue={(aiConfig.systemPrompt as string) || ''} rows={8}
+                onBlur={e => saveAIConfig('systemPrompt', e.target.value)}
+                style={{ width: '100%', background: '#1A1A28', border: '1px solid rgba(148,148,172,0.08)', borderRadius: '8px', color: '#F0F0F8', fontSize: '13px', padding: '12px', resize: 'vertical', outline: 'none', fontFamily: 'inherit', lineHeight: 1.5, boxSizing: 'border-box' }}
+              />
+            </div>
+            {/* Temperature & Max Tokens */}
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <div style={{ flex: 1, background: '#141420', borderRadius: '12px', border: '1px solid rgba(148,148,172,0.08)', padding: '16px' }}>
+                <label style={{ fontSize: '12px', fontWeight: 700, color: '#5C5C72', display: 'block', marginBottom: '6px' }}>Temperature</label>
+                <input type="number" step="0.1" min="0" max="2" defaultValue={(aiConfig.temperature as number) || 0.7}
+                  onBlur={e => saveAIConfig('temperature', parseFloat(e.target.value))}
+                  style={{ width: '100%', padding: '8px', borderRadius: '8px', background: '#1A1A28', border: '1px solid rgba(148,148,172,0.08)', color: '#F0F0F8', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
+                />
+              </div>
+              <div style={{ flex: 1, background: '#141420', borderRadius: '12px', border: '1px solid rgba(148,148,172,0.08)', padding: '16px' }}>
+                <label style={{ fontSize: '12px', fontWeight: 700, color: '#5C5C72', display: 'block', marginBottom: '6px' }}>Max Tokens</label>
+                <input type="number" defaultValue={(aiConfig.maxTokens as number) || 1024}
+                  onBlur={e => saveAIConfig('maxTokens', parseInt(e.target.value))}
+                  style={{ width: '100%', padding: '8px', borderRadius: '8px', background: '#1A1A28', border: '1px solid rgba(148,148,172,0.08)', color: '#F0F0F8', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===== AI PROVIDERS TAB ===== */}
+        {activeTab === 'ai-providers' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {aiProviders.map(p => (
+              <div key={p.id} style={{
+                background: '#141420', borderRadius: '12px', border: '1px solid rgba(148,148,172,0.08)', padding: '16px',
+                opacity: p.isEnabled ? 1 : 0.5,
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <div>
+                    <span style={{ fontSize: '14px', fontWeight: 700, color: '#F0F0F8' }}>{p.displayName}</span>
+                    <span style={{ fontSize: '11px', color: '#5C5C72', marginLeft: '8px' }}>P{p.priority} · Q{p.quality}</span>
+                  </div>
+                  <button onClick={() => toggleProvider(p.id, p.isEnabled)} style={{
+                    padding: '4px 12px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontSize: '11px', fontWeight: 700,
+                    background: p.isEnabled ? '#10B981' : '#FF4D6A', color: '#fff',
+                  }}>{p.isEnabled ? 'ON' : 'OFF'}</button>
+                </div>
+                <div style={{ fontSize: '12px', color: '#9494AC', marginBottom: '8px' }}>{p.model}</div>
+                {/* Usage bar */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{ flex: 1, height: '6px', borderRadius: '3px', background: '#1A1A28', overflow: 'hidden' }}>
+                    <div style={{
+                      height: '100%', borderRadius: '3px', transition: 'width 300ms',
+                      width: `${Math.min(100, (p.todayUsed / p.maxRPD) * 100)}%`,
+                      background: p.todayUsed / p.maxRPD > 0.9 ? '#FF4D6A' : p.todayUsed / p.maxRPD > 0.7 ? '#FFB800' : '#10B981',
+                    }} />
+                  </div>
+                  <span style={{ fontSize: '12px', color: '#9494AC', fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
+                    {p.todayUsed}/{p.maxRPD}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* ===== AI USAGE TAB ===== */}
+        {activeTab === 'ai-usage' && aiUsageData && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {/* Today summary */}
+            <div style={{ background: '#141420', borderRadius: '12px', border: '1px solid rgba(148,148,172,0.08)', padding: '16px', textAlign: 'center' }}>
+              <div style={{ fontSize: '32px', fontWeight: 800, color: '#FF6B35' }}>{aiUsageData.today.requests}</div>
+              <div style={{ fontSize: '12px', color: '#5C5C72' }}>requests hoje / {aiUsageData.today.capacity} capacidade</div>
+              <div style={{ height: '8px', borderRadius: '4px', background: '#1A1A28', marginTop: '12px', overflow: 'hidden' }}>
+                <div style={{
+                  height: '100%', borderRadius: '4px',
+                  width: `${Math.min(100, (aiUsageData.today.requests / aiUsageData.today.capacity) * 100)}%`,
+                  background: 'linear-gradient(90deg, #FF6B35, #FF8050)',
+                }} />
+              </div>
+            </div>
+            {/* Top users */}
+            <div style={{ background: '#141420', borderRadius: '12px', border: '1px solid rgba(148,148,172,0.08)', padding: '16px' }}>
+              <div style={{ fontSize: '14px', fontWeight: 700, color: '#F0F0F8', marginBottom: '12px' }}>Top Usuários Hoje</div>
+              {aiUsageData.topUsers.length === 0 ? (
+                <div style={{ color: '#5C5C72', fontSize: '13px' }}>Nenhum uso hoje</div>
+              ) : (
+                aiUsageData.topUsers.map((u, i) => (
+                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid rgba(148,148,172,0.04)' }}>
+                    <div>
+                      <span style={{ fontSize: '13px', fontWeight: 600, color: '#F0F0F8' }}>{u.user.displayName}</span>
+                      <span style={{ fontSize: '11px', color: '#5C5C72', marginLeft: '6px' }}>@{u.user.username}</span>
+                      <span style={{ fontSize: '10px', color: '#FF6B35', marginLeft: '6px', fontWeight: 600 }}>{u.user.plan}</span>
+                    </div>
+                    <span style={{ fontSize: '13px', fontWeight: 700, color: '#FF6B35' }}>{u.requestCount} req</span>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ===== USERS TAB (original content) ===== */}
+        {activeTab === 'users' && <>
         {/* Search */}
         <div style={{
           display: 'flex', alignItems: 'center', gap: '10px', background: '#141420', borderRadius: '12px',
@@ -240,7 +440,7 @@ export default function AdminPanelPage() {
                     <EyeIcon />
                   </button>
                   {/* Edit */}
-                  <button onClick={() => { setEditingUser(u); setEditForm({ displayName: u.displayName, username: u.username, email: u.email, bio: '', role: u.role, isVerified: u.isVerified }); }}
+                  <button onClick={() => { setEditingUser(u); setEditForm({ displayName: u.displayName, username: u.username, email: u.email, bio: '', role: u.role, isVerified: u.isVerified, plan: u.plan || 'FREE', aiEnabled: u.aiEnabled !== false, aiLimitOverride: u.aiLimitOverride != null ? String(u.aiLimitOverride) : '' }); }}
                     title="Editar" style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(204,255,0,0.08)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <EditIcon />
                   </button>
@@ -263,6 +463,8 @@ export default function AdminPanelPage() {
             ))
           )}
         </div>
+
+        </>}
 
         {/* Edit Modal */}
         {editingUser && (
@@ -289,10 +491,32 @@ export default function AdminPanelPage() {
                   <option value="ADMIN">ADMIN</option>
                 </select>
               </div>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', cursor: 'pointer' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', cursor: 'pointer' }}>
                 <input type="checkbox" checked={editForm.isVerified} onChange={e => setEditForm(prev => ({ ...prev, isVerified: e.target.checked }))} />
                 <span style={{ fontSize: '13px', color: '#9494AC' }}>Verificado (PRO)</span>
               </label>
+              {/* Plan */}
+              <div style={{ marginBottom: '12px' }}>
+                <label style={{ fontSize: '11px', fontWeight: 700, color: '#5C5C72', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Plano IA</label>
+                <select value={editForm.plan} onChange={e => setEditForm(prev => ({ ...prev, plan: e.target.value }))}
+                  style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', background: '#1A1A28', border: '1px solid rgba(148,148,172,0.12)', color: '#F0F0F8', fontSize: '14px', outline: 'none' }}>
+                  <option value="FREE">FREE</option>
+                  <option value="PLUS">PLUS</option>
+                  <option value="PRO">PRO</option>
+                </select>
+              </div>
+              {/* AI enabled */}
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', cursor: 'pointer' }}>
+                <input type="checkbox" checked={editForm.aiEnabled} onChange={e => setEditForm(prev => ({ ...prev, aiEnabled: e.target.checked }))} />
+                <span style={{ fontSize: '13px', color: '#9494AC' }}>IA Habilitada</span>
+              </label>
+              {/* AI limit override */}
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ fontSize: '11px', fontWeight: 700, color: '#5C5C72', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Limite IA (override, vazio = padrão)</label>
+                <input type="number" value={editForm.aiLimitOverride} onChange={e => setEditForm(prev => ({ ...prev, aiLimitOverride: e.target.value }))}
+                  placeholder="Padrão do plano"
+                  style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', background: '#1A1A28', border: '1px solid rgba(148,148,172,0.12)', color: '#F0F0F8', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
+              </div>
               <div style={{ display: 'flex', gap: '10px' }}>
                 <button onClick={() => setEditingUser(null)} style={{ flex: 1, padding: '12px', borderRadius: '10px', border: '1px solid rgba(148,148,172,0.12)', background: 'transparent', color: '#9494AC', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>Cancelar</button>
                 <button onClick={handleSaveEdit} style={{ flex: 1, padding: '12px', borderRadius: '10px', border: 'none', background: '#FF6B35', color: '#0A0A0F', fontSize: '14px', fontWeight: 700, cursor: 'pointer' }}>Salvar</button>
