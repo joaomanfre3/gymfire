@@ -78,12 +78,13 @@ function timeAgo(dateStr: string): string {
 export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
-  const [user, setUser] = useState<{ displayName?: string; username?: string } | null>(null);
+  const [user, setUser] = useState<{ displayName?: string; username?: string; role?: string } | null>(null);
   const [loggedIn, setLoggedIn] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [aiAlertLevel, setAiAlertLevel] = useState<string>('ok');
   const notifRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -92,6 +93,21 @@ export default function Navbar() {
     setLoggedIn(!!token);
     setUser(u);
     if (token) loadNotifications();
+    // Admin AI alert polling
+    if (u?.role === 'ADMIN' && token) {
+      const loadAlert = async () => {
+        try {
+          const res = await apiFetch('/api/admin/ai/usage');
+          if (res.ok) {
+            const data = await res.json();
+            setAiAlertLevel(data.alert?.level || 'ok');
+          }
+        } catch { /* ignore */ }
+      };
+      loadAlert();
+      const interval = setInterval(loadAlert, 30000);
+      return () => clearInterval(interval);
+    }
   }, [pathname]);
 
   // Close dropdown on outside click
@@ -155,6 +171,7 @@ export default function Navbar() {
   ];
 
   return (
+    <>
     <header className="glass" style={{
       position: 'sticky',
       top: 0,
@@ -385,20 +402,36 @@ export default function Navbar() {
                 alignItems: 'center',
                 gap: '8px',
               }}>
-                <div style={{
-                  width: '34px',
-                  height: '34px',
-                  borderRadius: '50%',
-                  background: 'linear-gradient(135deg, #FF6B35, #E05520)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#fff',
-                  fontWeight: 700,
-                  fontSize: '14px',
-                  border: '2px solid rgba(255, 107, 53, 0.25)',
-                }}>
-                  {(user.displayName || user.username || '?')[0].toUpperCase()}
+                <div style={{ position: 'relative' }}>
+                  <div style={{
+                    width: '34px',
+                    height: '34px',
+                    borderRadius: '50%',
+                    background: 'linear-gradient(135deg, #FF6B35, #E05520)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#fff',
+                    fontWeight: 700,
+                    fontSize: '14px',
+                    border: '2px solid rgba(255, 107, 53, 0.25)',
+                  }}>
+                    {(user.displayName || user.username || '?')[0].toUpperCase()}
+                  </div>
+                  {user.role === 'ADMIN' && aiAlertLevel !== 'ok' && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '-1px',
+                      left: '-1px',
+                      width: '8px',
+                      height: '8px',
+                      borderRadius: '50%',
+                      background: aiAlertLevel === 'exhausted' ? '#FF4D6A' : aiAlertLevel === 'critical' ? '#FF6B35' : '#FFB800',
+                      border: '1.5px solid #0A0A0F',
+                      boxShadow: `0 0 6px ${aiAlertLevel === 'exhausted' ? 'rgba(255,77,106,0.6)' : aiAlertLevel === 'critical' ? 'rgba(255,107,53,0.6)' : 'rgba(255,184,0,0.6)'}`,
+                      animation: aiAlertLevel === 'exhausted' ? 'aiDotPulse 1s ease infinite' : 'none',
+                    }} />
+                  )}
                 </div>
                 <span style={{ color: '#F0F0F8', fontSize: '13px', fontWeight: 600 }}>
                   {user.displayName || user.username}
@@ -578,5 +611,7 @@ export default function Navbar() {
         </div>
       )}
     </header>
+    {user?.role === 'ADMIN' && <style>{`@keyframes aiDotPulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(1.3); } }`}</style>}
+    </>
   );
 }
