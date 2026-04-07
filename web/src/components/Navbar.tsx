@@ -418,7 +418,7 @@ export default function Navbar() {
                   }}>
                     {(user.displayName || user.username || '?')[0].toUpperCase()}
                   </div>
-                  {user.role === 'ADMIN' && aiAlertLevel !== 'ok' && (
+                  {user.role === 'ADMIN' && (
                     <div style={{
                       position: 'absolute',
                       top: '-1px',
@@ -426,9 +426,9 @@ export default function Navbar() {
                       width: '8px',
                       height: '8px',
                       borderRadius: '50%',
-                      background: aiAlertLevel === 'exhausted' ? '#FF4D6A' : aiAlertLevel === 'critical' ? '#FF6B35' : '#FFB800',
+                      background: aiAlertLevel === 'exhausted' ? '#FF4D6A' : aiAlertLevel === 'critical' ? '#FF6B35' : aiAlertLevel === 'warning' ? '#FFB800' : '#10B981',
                       border: '1.5px solid #0A0A0F',
-                      boxShadow: `0 0 6px ${aiAlertLevel === 'exhausted' ? 'rgba(255,77,106,0.6)' : aiAlertLevel === 'critical' ? 'rgba(255,107,53,0.6)' : 'rgba(255,184,0,0.6)'}`,
+                      boxShadow: `0 0 6px ${aiAlertLevel === 'exhausted' ? 'rgba(255,77,106,0.6)' : aiAlertLevel === 'critical' ? 'rgba(255,107,53,0.6)' : aiAlertLevel === 'warning' ? 'rgba(255,184,0,0.6)' : 'rgba(16,185,129,0.4)'}`,
                       animation: aiAlertLevel === 'exhausted' ? 'aiDotPulse 1s ease infinite' : 'none',
                     }} />
                   )}
