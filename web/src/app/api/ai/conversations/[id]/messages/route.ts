@@ -70,8 +70,9 @@ export async function POST(
     // 4. Build system prompt
     const systemPrompt = await buildSystemPrompt(user.id, access.plan!);
     const config = await getAIConfig();
-    const maxTokens = (config.maxTokens as number) || 1024;
-    const temperature = (config.temperature as number) || 0.7;
+    const rawMaxTokens = config.maxTokens;
+    const maxTokens = Math.min(Number(rawMaxTokens) || 1024, 4096);
+    const temperature = Math.min(Number(config.temperature) || 0.7, 2);
 
     // 5. Get conversation history (last 20 messages)
     const history = await prisma.aIMessage.findMany({

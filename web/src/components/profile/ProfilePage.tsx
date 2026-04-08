@@ -74,7 +74,7 @@ export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState<ProfileTab>('posts');
   const [showAdmin, setShowAdmin] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [posts, setPosts] = useState<Array<{ id: string; mediaUrls: string[]; type: string }>>([]);
+  const [posts, setPosts] = useState<Array<{ id: string; mediaUrls: string[]; type: string; caption?: string }>>([]);
   const [cuts, setCuts] = useState<Array<{ id: string; mediaUrls: string[]; caption: string }>>([]);
 
   useEffect(() => {
@@ -394,9 +394,25 @@ export default function ProfilePage() {
                 backgroundSize: 'cover', backgroundPosition: 'center',
                 cursor: 'pointer', position: 'relative',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
+                overflow: 'hidden',
               }}>
                 {!post.mediaUrls?.[0] && (
-                  <svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="#5C5C72" strokeWidth={1.5}><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="m21 15-5-5L5 21" /></svg>
+                  <div style={{
+                    padding: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    width: '100%', height: '100%',
+                    background: 'linear-gradient(135deg, #1A1A28, #141420)',
+                  }}>
+                    {post.caption ? (
+                      <p style={{
+                        fontSize: '11px', color: '#9494AC', lineHeight: 1.4,
+                        overflow: 'hidden', textOverflow: 'ellipsis',
+                        display: '-webkit-box', WebkitLineClamp: 5, WebkitBoxOrient: 'vertical',
+                        margin: 0, textAlign: 'center', wordBreak: 'break-word',
+                      }}>{post.caption}</p>
+                    ) : (
+                      <svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="#5C5C72" strokeWidth={1.5}><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+                    )}
+                  </div>
                 )}
               </div>
             ))}

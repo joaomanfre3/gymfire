@@ -6,7 +6,6 @@ import {
   Equipment,
   ExerciseCategory,
 } from '@prisma/client';
-import { defaultExercises } from '../prisma/seeds/exercises.seed';
 
 @Injectable()
 export class ExercisesService {
@@ -22,7 +21,7 @@ export class ExercisesService {
         ...(filters?.muscleGroup && { muscleGroup: filters.muscleGroup }),
         ...(filters?.equipment && { equipment: filters.equipment }),
         ...(filters?.category && { category: filters.category }),
-        OR: [{ isPublic: true }, { isFromLibrary: true }],
+        isPublic: true,
       },
       orderBy: { name: 'asc' },
     });
@@ -77,18 +76,6 @@ export class ExercisesService {
   }
 
   async seed() {
-    const count = await this.prisma.exercise.count({
-      where: { isFromLibrary: true },
-    });
-
-    if (count > 0) {
-      return { message: `Skipped seeding: ${count} library exercises already exist` };
-    }
-
-    await this.prisma.exercise.createMany({
-      data: defaultExercises,
-    });
-
-    return { message: `Seeded ${defaultExercises.length} default exercises` };
+    return { message: 'Exercise seeding disabled - users add their own exercises' };
   }
 }

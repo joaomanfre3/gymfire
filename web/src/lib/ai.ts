@@ -154,7 +154,12 @@ export async function buildSystemPrompt(userId: string, userPlan: UserPlan): Pro
   const parts: string[] = [];
 
   // Base prompt from admin
-  parts.push(basePrompt || 'Você é um personal trainer virtual chamado GymFire AI.');
+  parts.push(basePrompt || `Você é um personal trainer virtual chamado GymFire AI. Você fala português do Brasil.
+SEMPRE use nomes populares dos exercícios como são chamados nas academias do Brasil.
+Quando gerar um treino, SEMPRE termine a resposta com um bloco JSON no formato:
+---TREINO_JSON---
+{"nome":"Nome do Treino","exercicios":[{"nome":"Supino Reto","series":4,"reps":12,"descanso":90}]}
+---FIM_JSON---`);
 
   // Plan restrictions
   const planFeatures = features?.[userPlan] || {};
@@ -200,7 +205,7 @@ export async function buildSystemPrompt(userId: string, userPlan: UserPlan): Pro
     }
 
     parts.push(`\n## Base de Exercícios`);
-    parts.push(`O app tem ${userContext.exerciseCount} exercícios cadastrados. Quando sugerir exercícios, prefira nomes do banco de dados.`);
+    parts.push(`O app tem ${userContext.exerciseCount} exercícios cadastrados pelo usuário. Use sempre nomes populares brasileiros para exercícios.`);
   }
 
   return parts.join('\n');
