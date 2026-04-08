@@ -34,18 +34,35 @@ interface ParsedWorkout {
   exercicios: Array<{ nome: string; series: number; reps: number; descanso: number }>;
 }
 
+interface ParsedWeeklyPlan {
+  tipo: 'semanal';
+  nome: string;
+  treinos: ParsedWorkout[];
+}
+
+type ParsedAIWorkout = ParsedWorkout | ParsedWeeklyPlan;
+
+function isWeeklyPlan(data: ParsedAIWorkout): data is ParsedWeeklyPlan {
+  return 'tipo' in data && data.tipo === 'semanal';
+}
+
 interface RoutineOption {
   id: string;
   name: string;
   sets: Array<{ id: string; exercise: { name: string } }>;
 }
 
-// Parse workout JSON from AI response
-function parseWorkoutFromMessage(content: string): ParsedWorkout | null {
+// Parse workout JSON from AI response (single or weekly)
+function parseWorkoutFromMessage(content: string): ParsedAIWorkout | null {
   const match = content.match(/---TREINO_JSON---\s*([\s\S]*?)\s*---FIM_JSON---/);
   if (!match) return null;
   try {
     const data = JSON.parse(match[1]);
+    // Weekly plan
+    if (data.tipo === 'semanal' && Array.isArray(data.treinos) && data.treinos.length > 0) {
+      return data as ParsedWeeklyPlan;
+    }
+    // Single workout
     if (data.nome && Array.isArray(data.exercicios) && data.exercicios.length > 0) {
       return data as ParsedWorkout;
     }
@@ -111,13 +128,14 @@ export default function AIPage() {
 
   // Save workout modal state
   const [showSaveModal, setShowSaveModal] = useState(false);
-  const [savingWorkout, setSavingWorkout] = useState<ParsedWorkout | null>(null);
+  const [savingWorkout, setSavingWorkout] = useState<ParsedAIWorkout | null>(null);
   const [routines, setRoutines] = useState<RoutineOption[]>([]);
   const [saveMode, setSaveMode] = useState<'new' | 'existing'>('new');
   const [selectedRoutineId, setSelectedRoutineId] = useState('');
   const [newRoutineName, setNewRoutineName] = useState('');
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
+  const [replaceConfirm, setReplaceConfirm] = useState(false);
 
   useEffect(() => {
     if (!getToken()) { router.push('/login'); return; }
@@ -272,29 +290,49 @@ export default function AIPage() {
     loadConversations();
   }
 
-  function openSaveModal(workout: ParsedWorkout) {
+  function openSaveModal(workout: ParsedAIWorkout) {
     setSavingWorkout(workout);
     setNewRoutineName(workout.nome);
     setSaveMode('new');
     setSelectedRoutineId('');
     setSaveSuccess(null);
+    setReplaceConfirm(false);
     setShowSaveModal(true);
     loadRoutines();
   }
 
+  // Open save modal for a single workout from a weekly plan
+  function openSaveSingleFromPlan(workout: ParsedWorkout) {
+    openSaveModal(workout);
+  }
+
   async function handleSaveWorkout() {
     if (!savingWorkout) return;
+
+    // If replacing existing routine, require confirmation
+    if (saveMode === 'existing' && selectedRoutineId && !replaceConfirm) {
+      setReplaceConfirm(true);
+      return;
+    }
+
     setSaving(true);
     setSaveSuccess(null);
 
     try {
+      const isWeekly = isWeeklyPlan(savingWorkout);
       const payload: Record<string, unknown> = {
         nome: saveMode === 'new' ? (newRoutineName || savingWorkout.nome) : savingWorkout.nome,
-        exercicios: savingWorkout.exercicios,
       };
+
+      if (isWeekly) {
+        payload.treinos = savingWorkout.treinos;
+      } else {
+        payload.exercicios = savingWorkout.exercicios;
+      }
 
       if (saveMode === 'existing' && selectedRoutineId) {
         payload.routineId = selectedRoutineId;
+        payload.replace = replaceConfirm;
       }
 
       const res = await apiFetch('/api/ai/save-workout', {
@@ -304,10 +342,13 @@ export default function AIPage() {
 
       if (res.ok) {
         const data = await res.json();
-        setSaveSuccess(saveMode === 'new'
+        const msg = saveMode === 'new'
           ? `Rotina "${data.name}" criada com sucesso!`
-          : `Exercícios adicionados à rotina!`
-        );
+          : replaceConfirm
+            ? `Rotina substituída com sucesso!`
+            : `Exercícios adicionados à rotina!`;
+        setSaveSuccess(msg);
+        setReplaceConfirm(false);
         setTimeout(() => {
           setShowSaveModal(false);
           setSaveSuccess(null);
@@ -452,8 +493,8 @@ export default function AIPage() {
                   </div>
                 </div>
 
-                {/* Save workout button */}
-                {parsedWorkout && (
+                {/* Save workout buttons */}
+                {parsedWorkout && !isWeeklyPlan(parsedWorkout) && (
                   <div style={{ display: 'flex', justifyContent: 'flex-start', marginTop: '8px' }}>
                     <button
                       onClick={() => openSaveModal(parsedWorkout)}
@@ -469,6 +510,57 @@ export default function AIPage() {
                     >
                       <SaveIcon />
                       Adicionar à Rotina
+                    </button>
+                  </div>
+                )}
+
+                {/* Weekly plan buttons */}
+                {parsedWorkout && isWeeklyPlan(parsedWorkout) && (
+                  <div style={{
+                    marginTop: '8px', padding: '14px', borderRadius: '14px',
+                    background: '#141420', border: '1px solid rgba(148,148,172,0.08)',
+                  }}>
+                    <div style={{ fontSize: '12px', fontWeight: 700, color: '#5C5C72', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '10px' }}>
+                      {parsedWorkout.treinos.length} treinos gerados
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '12px' }}>
+                      {parsedWorkout.treinos.map((treino, idx) => (
+                        <div key={idx} style={{
+                          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                          padding: '10px 12px', borderRadius: '10px',
+                          background: '#0A0A0F', border: '1px solid rgba(148,148,172,0.06)',
+                        }}>
+                          <div>
+                            <div style={{ fontSize: '13px', fontWeight: 600, color: '#F0F0F8' }}>{treino.nome}</div>
+                            <div style={{ fontSize: '11px', color: '#5C5C72' }}>{treino.exercicios.length} exercícios</div>
+                          </div>
+                          <button
+                            onClick={() => openSaveSingleFromPlan(treino)}
+                            style={{
+                              padding: '6px 14px', borderRadius: '8px',
+                              background: 'rgba(255,107,53,0.1)', border: '1px solid rgba(255,107,53,0.2)',
+                              color: '#FF6B35', fontSize: '11px', fontWeight: 700, cursor: 'pointer',
+                              transition: 'all 200ms',
+                            }}
+                          >
+                            Adicionar
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    <button
+                      onClick={() => openSaveModal(parsedWorkout)}
+                      style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                        width: '100%', padding: '12px', borderRadius: '12px',
+                        background: 'linear-gradient(135deg, #FF6B35, #FF8F5E)',
+                        border: 'none', cursor: 'pointer',
+                        color: '#0A0A0F', fontSize: '13px', fontWeight: 700,
+                        boxShadow: '0 2px 12px rgba(255,107,53,0.3)',
+                      }}
+                    >
+                      <SaveIcon />
+                      Adicionar Rotina Completa
                     </button>
                   </div>
                 )}
@@ -568,11 +660,20 @@ export default function AIPage() {
             overflowY: 'auto', padding: '24px',
           }}>
             {/* Modal header */}
+            {(() => {
+              const weekly = isWeeklyPlan(savingWorkout);
+              const allExercises = weekly
+                ? savingWorkout.treinos.flatMap(t => t.exercicios)
+                : savingWorkout.exercicios;
+              const workoutList = weekly ? savingWorkout.treinos : [savingWorkout];
+              const totalExCount = allExercises.length;
+
+              return (<>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
               <div>
                 <div style={{ fontSize: '18px', fontWeight: 800, color: '#F0F0F8' }}>Adicionar à Rotina</div>
                 <div style={{ fontSize: '12px', color: '#5C5C72', marginTop: '2px' }}>
-                  {savingWorkout.exercicios.length} exercícios
+                  {weekly ? `${workoutList.length} treinos · ` : ''}{totalExCount} exercícios
                 </div>
               </div>
               <button onClick={() => setShowSaveModal(false)} style={{
@@ -582,18 +683,19 @@ export default function AIPage() {
             </div>
 
             {/* Workout preview */}
-            <div style={{
+            {workoutList.map((workout, wi) => (
+            <div key={wi} style={{
               background: '#0A0A0F', borderRadius: '12px', padding: '14px',
-              marginBottom: '20px', border: '1px solid rgba(148,148,172,0.06)',
+              marginBottom: '12px', border: '1px solid rgba(148,148,172,0.06)',
             }}>
               <div style={{ fontSize: '14px', fontWeight: 700, color: '#FF6B35', marginBottom: '10px' }}>
-                {savingWorkout.nome}
+                {workout.nome}
               </div>
-              {savingWorkout.exercicios.map((ex, i) => (
+              {workout.exercicios.map((ex, i) => (
                 <div key={i} style={{
                   display: 'flex', alignItems: 'center', gap: '10px',
                   padding: '6px 0',
-                  borderBottom: i < savingWorkout.exercicios.length - 1 ? '1px solid rgba(148,148,172,0.06)' : 'none',
+                  borderBottom: i < workout.exercicios.length - 1 ? '1px solid rgba(148,148,172,0.06)' : 'none',
                 }}>
                   <span style={{
                     width: '22px', height: '22px', borderRadius: '50%',
@@ -610,6 +712,9 @@ export default function AIPage() {
                 </div>
               ))}
             </div>
+            ))}
+              </>);
+            })()}
 
             {/* Save options */}
             <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
@@ -696,13 +801,54 @@ export default function AIPage() {
                     ))}
                   </div>
                 )}
-                {selectedRoutineId && (
+                {selectedRoutineId && !replaceConfirm && (
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+                    <button
+                      onClick={() => { setReplaceConfirm(false); handleSaveWorkout(); }}
+                      style={{
+                        flex: 1, padding: '10px', borderRadius: '8px', fontSize: '12px', fontWeight: 600,
+                        background: 'rgba(76,217,100,0.08)', border: '1px solid rgba(76,217,100,0.2)',
+                        color: '#4CD964', cursor: 'pointer',
+                      }}
+                    >
+                      Adicionar ao final
+                    </button>
+                    <button
+                      onClick={() => setReplaceConfirm(true)}
+                      style={{
+                        flex: 1, padding: '10px', borderRadius: '8px', fontSize: '12px', fontWeight: 600,
+                        background: 'rgba(255,77,106,0.08)', border: '1px solid rgba(255,77,106,0.2)',
+                        color: '#FF4D6A', cursor: 'pointer',
+                      }}
+                    >
+                      Substituir treinos
+                    </button>
+                  </div>
+                )}
+                {replaceConfirm && selectedRoutineId && (
                   <div style={{
-                    marginTop: '10px', padding: '10px 12px', borderRadius: '8px',
-                    background: 'rgba(255,184,0,0.06)', border: '1px solid rgba(255,184,0,0.15)',
-                    fontSize: '12px', color: '#FFB800', lineHeight: 1.5,
+                    marginTop: '10px', padding: '14px', borderRadius: '10px',
+                    background: 'rgba(255,77,106,0.06)', border: '1px solid rgba(255,77,106,0.2)',
+                    textAlign: 'center',
                   }}>
-                    Os exercícios serão adicionados ao final da rotina selecionada.
+                    <div style={{ fontSize: '13px', fontWeight: 700, color: '#FF4D6A', marginBottom: '6px' }}>
+                      Substituir treinos existentes?
+                    </div>
+                    <div style={{ fontSize: '11px', color: '#9494AC', marginBottom: '12px' }}>
+                      Todos os exercícios atuais da rotina serão removidos.
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button onClick={() => setReplaceConfirm(false)} style={{
+                        flex: 1, padding: '10px', borderRadius: '8px', fontSize: '12px', fontWeight: 600,
+                        background: 'transparent', border: '1px solid rgba(148,148,172,0.12)',
+                        color: '#9494AC', cursor: 'pointer',
+                      }}>Cancelar</button>
+                      <button onClick={handleSaveWorkout} style={{
+                        flex: 1, padding: '10px', borderRadius: '8px', fontSize: '12px', fontWeight: 700,
+                        background: '#FF4D6A', border: 'none',
+                        color: '#fff', cursor: 'pointer',
+                      }}>{saving ? 'Salvando...' : 'Sim, Substituir'}</button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -721,21 +867,23 @@ export default function AIPage() {
               </div>
             )}
 
-            {/* Save button */}
-            <button
-              onClick={handleSaveWorkout}
-              disabled={saving || (saveMode === 'existing' && !selectedRoutineId) || (saveMode === 'new' && !newRoutineName.trim())}
-              style={{
-                width: '100%', padding: '14px', borderRadius: '12px', border: 'none',
-                background: saving ? '#1A1A28' : 'linear-gradient(135deg, #FF6B35, #FF8F5E)',
-                color: saving ? '#5C5C72' : '#0A0A0F',
-                fontSize: '14px', fontWeight: 700, cursor: saving ? 'default' : 'pointer',
-                opacity: (saving || (saveMode === 'existing' && !selectedRoutineId) || (saveMode === 'new' && !newRoutineName.trim())) ? 0.5 : 1,
-                transition: 'all 200ms',
-              }}
-            >
-              {saving ? 'Salvando...' : saveMode === 'new' ? 'Criar Rotina' : 'Adicionar à Rotina'}
-            </button>
+            {/* Save button (only for new routine) */}
+            {saveMode === 'new' && (
+              <button
+                onClick={handleSaveWorkout}
+                disabled={saving || !newRoutineName.trim()}
+                style={{
+                  width: '100%', padding: '14px', borderRadius: '12px', border: 'none',
+                  background: saving ? '#1A1A28' : 'linear-gradient(135deg, #FF6B35, #FF8F5E)',
+                  color: saving ? '#5C5C72' : '#0A0A0F',
+                  fontSize: '14px', fontWeight: 700, cursor: saving ? 'default' : 'pointer',
+                  opacity: (saving || !newRoutineName.trim()) ? 0.5 : 1,
+                  transition: 'all 200ms',
+                }}
+              >
+                {saving ? 'Salvando...' : 'Criar Rotina'}
+              </button>
+            )}
 
             {/* Link to routines */}
             {saveSuccess && !saveSuccess.startsWith('Erro') && (

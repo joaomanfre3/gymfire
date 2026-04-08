@@ -9,11 +9,85 @@ interface WorkoutExercise {
   descanso: number;
 }
 
-interface SaveWorkoutBody {
+interface SingleWorkout {
   nome: string;
   exercicios: WorkoutExercise[];
-  routineId?: string; // if provided, adds workout to existing routine
-  replaceWorkoutId?: string; // if provided, replaces this workout in the routine
+}
+
+interface SaveWorkoutBody {
+  nome: string;
+  exercicios?: WorkoutExercise[];
+  treinos?: SingleWorkout[];     // For weekly plans (multiple workouts)
+  routineId?: string;            // Add to existing routine
+  replace?: boolean;             // Replace all sets in existing routine
+}
+
+async function resolveExerciseId(nome: string, userId: string): Promise<string> {
+  const slug = nome
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+
+  let exercise = await prisma.exercise.findFirst({
+    where: {
+      OR: [
+        { name: { equals: nome, mode: 'insensitive' } },
+        { slug },
+        { aliases: { some: { name: { equals: nome, mode: 'insensitive' } } } },
+      ],
+    },
+  });
+
+  if (!exercise) {
+    let uniqueSlug = slug;
+    let counter = 1;
+    while (await prisma.exercise.findUnique({ where: { slug: uniqueSlug } })) {
+      uniqueSlug = `${slug}-${counter}`;
+      counter++;
+    }
+
+    exercise = await prisma.exercise.create({
+      data: {
+        name: nome,
+        slug: uniqueSlug,
+        muscleGroup: 'OTHER',
+        equipment: 'OTHER',
+        category: 'STRENGTH',
+        isPublic: true,
+        isFromLibrary: false,
+        createdById: userId,
+      },
+    });
+  }
+
+  return exercise.id;
+}
+
+async function createSetsForWorkout(
+  routineId: string,
+  workout: SingleWorkout,
+  startOrder: number,
+  userId: string,
+): Promise<number> {
+  let order = startOrder;
+  for (const ex of workout.exercicios) {
+    const exerciseId = await resolveExerciseId(ex.nome, userId);
+    await prisma.routineSet.create({
+      data: {
+        routineId,
+        exerciseId,
+        order,
+        sets: ex.series,
+        reps: String(ex.reps),
+        restSeconds: ex.descanso,
+        notes: `IA - ${workout.nome}`,
+      },
+    });
+    order++;
+  }
+  return order;
 }
 
 export async function POST(request: Request) {
@@ -24,96 +98,47 @@ export async function POST(request: Request) {
     }
 
     const body: SaveWorkoutBody = await request.json();
-    const { nome, exercicios, routineId, replaceWorkoutId } = body;
+    const { nome, exercicios, treinos, routineId, replace } = body;
 
-    if (!nome || !exercicios?.length) {
+    // Validate: need either exercicios (single) or treinos (weekly)
+    const workouts: SingleWorkout[] = treinos?.length
+      ? treinos
+      : exercicios?.length
+        ? [{ nome, exercicios }]
+        : [];
+
+    if (workouts.length === 0) {
       return NextResponse.json(
-        { error: 'Nome e exercícios são obrigatórios' },
+        { error: 'Exercícios são obrigatórios' },
         { status: 400 }
       );
-    }
-
-    // For each exercise, find or create it
-    const exerciseIds: string[] = [];
-    for (const ex of exercicios) {
-      const slug = ex.nome
-        .toLowerCase()
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-|-$/g, '');
-
-      // Try to find existing exercise by name (case insensitive)
-      let exercise = await prisma.exercise.findFirst({
-        where: {
-          OR: [
-            { name: { equals: ex.nome, mode: 'insensitive' } },
-            { slug: slug },
-          ],
-        },
-      });
-
-      if (!exercise) {
-        // Ensure slug uniqueness
-        let uniqueSlug = slug;
-        let counter = 1;
-        while (await prisma.exercise.findUnique({ where: { slug: uniqueSlug } })) {
-          uniqueSlug = `${slug}-${counter}`;
-          counter++;
-        }
-
-        exercise = await prisma.exercise.create({
-          data: {
-            name: ex.nome,
-            slug: uniqueSlug,
-            muscleGroup: 'OTHER',
-            equipment: 'OTHER',
-            category: 'STRENGTH',
-            isPublic: true,
-            isFromLibrary: false,
-            createdById: user.id,
-          },
-        });
-      }
-
-      exerciseIds.push(exercise.id);
     }
 
     let routine;
 
     if (routineId) {
-      // Add to existing routine
+      // Use existing routine
       routine = await prisma.routine.findUnique({ where: { id: routineId } });
       if (!routine || routine.userId !== user.id) {
         return NextResponse.json({ error: 'Rotina não encontrada' }, { status: 404 });
       }
 
-      if (replaceWorkoutId) {
-        // Replace existing workout in routine - delete old sets and add new ones
-        await prisma.routineSet.deleteMany({
-          where: { routineId, id: replaceWorkoutId },
-        });
+      if (replace) {
+        // Delete ALL existing sets before adding new ones
+        await prisma.routineSet.deleteMany({ where: { routineId } });
       }
 
-      // Add exercises as routine sets
-      const existingSetsCount = await prisma.routineSet.count({ where: { routineId } });
+      // Get current max order
+      const existingSetsCount = replace
+        ? 0
+        : await prisma.routineSet.count({ where: { routineId } });
 
-      for (let i = 0; i < exercicios.length; i++) {
-        await prisma.routineSet.create({
-          data: {
-            routineId,
-            exerciseId: exerciseIds[i],
-            order: existingSetsCount + i + 1,
-            sets: exercicios[i].series,
-            reps: String(exercicios[i].reps),
-            restSeconds: exercicios[i].descanso,
-            notes: `Gerado por IA - ${nome}`,
-          },
-        });
+      let order = existingSetsCount + 1;
+      for (const w of workouts) {
+        order = await createSetsForWorkout(routineId, w, order, user.id);
       }
     } else {
       // Create new routine
-      // Deactivate all other routines
       await prisma.routine.updateMany({
         where: { userId: user.id, isActive: true },
         data: { isActive: false },
@@ -121,30 +146,21 @@ export async function POST(request: Request) {
 
       routine = await prisma.routine.create({
         data: {
-          name: nome,
-          description: `Treino gerado pela GymFire AI`,
+          name: nome || 'Rotina IA',
+          description: workouts.length > 1
+            ? `${workouts.length} treinos gerados pela GymFire AI`
+            : 'Treino gerado pela GymFire AI',
           isActive: true,
           userId: user.id,
         },
       });
 
-      // Add exercises as routine sets
-      for (let i = 0; i < exercicios.length; i++) {
-        await prisma.routineSet.create({
-          data: {
-            routineId: routine.id,
-            exerciseId: exerciseIds[i],
-            order: i + 1,
-            sets: exercicios[i].series,
-            reps: String(exercicios[i].reps),
-            restSeconds: exercicios[i].descanso,
-            notes: `Gerado por IA`,
-          },
-        });
+      let order = 1;
+      for (const w of workouts) {
+        order = await createSetsForWorkout(routine.id, w, order, user.id);
       }
     }
 
-    // Fetch the complete routine with sets
     const fullRoutine = await prisma.routine.findUnique({
       where: { id: routine!.id },
       include: {
