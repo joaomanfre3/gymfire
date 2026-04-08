@@ -95,6 +95,34 @@ export async function selectProvider(userPlan: UserPlan): Promise<ProviderInfo |
   return toProviderInfo(selected);
 }
 
+// Select a provider excluding specific ones (for fallback retry)
+export async function selectProviderExcluding(userPlan: UserPlan, excludeNames: string[]): Promise<ProviderInfo | null> {
+  const providers = await prisma.aIProvider.findMany({
+    where: {
+      isEnabled: true,
+      name: { notIn: excludeNames },
+    },
+    orderBy: { priority: 'asc' },
+  });
+
+  const available = providers.filter(p => {
+    const hasKey = !!process.env[p.apiKeyEnv];
+    const hasQuota = p.todayUsed < p.maxRPD;
+    return hasKey && hasQuota;
+  });
+
+  if (available.length === 0) return null;
+
+  // Pick lowest usage percentage
+  const selected = available.reduce((best, current) => {
+    const bestPercent = best.todayUsed / best.maxRPD;
+    const currentPercent = current.todayUsed / current.maxRPD;
+    return currentPercent < bestPercent ? current : best;
+  });
+
+  return toProviderInfo(selected);
+}
+
 function toProviderInfo(p: { id: string; name: string; displayName: string; baseUrl: string; model: string; apiKeyEnv: string; maxRPM: number }): ProviderInfo {
   return {
     id: p.id,

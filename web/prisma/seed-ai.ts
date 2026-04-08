@@ -24,9 +24,9 @@ async function main() {
     },
     {
       name: 'gemini_flash',
-      displayName: 'Gemini 2.5 Flash-Lite',
+      displayName: 'Gemini 2.0 Flash',
       baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
-      model: 'gemini-2.5-flash-lite',
+      model: 'gemini-2.0-flash',
       apiKeyEnv: 'GEMINI_API_KEY',
       priority: 2,
       maxRPD: 1000,

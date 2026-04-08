@@ -30,7 +30,7 @@ export default function IdleView({ dispatch }: Props) {
 
   const startFromRoutine = (routine: Routine) => {
     const exerciseMap = new Map<string, { id: string; name: string; muscleGroup: string }>();
-    routine.sets.forEach(s => {
+    (routine.sets || []).forEach(s => {
       if (!exerciseMap.has(s.exercise.id)) {
         exerciseMap.set(s.exercise.id, s.exercise);
       }
@@ -119,7 +119,7 @@ export default function IdleView({ dispatch }: Props) {
               >
                 <div style={{ fontSize: '14px', fontWeight: 600, color: '#F0F0F8', marginBottom: '6px' }}>{r.name}</div>
                 <div style={{ fontSize: '12px', color: '#9494AC', marginBottom: '4px' }}>
-                  {new Set(r.sets.map(s => s.exercise.id)).size} exercícios
+                  {new Set((r.sets || []).map(s => s.exercise.id)).size} exercícios
                 </div>
                 <div style={{
                   display: 'inline-flex', alignItems: 'center', gap: '4px',

@@ -12,6 +12,10 @@ export async function GET(request: Request) {
     const routines = await prisma.routine.findMany({
       where: { userId: user.id },
       include: {
+        sets: {
+          include: { exercise: true },
+          orderBy: { order: 'asc' },
+        },
         routineWorkouts: {
           include: {
             exercises: {

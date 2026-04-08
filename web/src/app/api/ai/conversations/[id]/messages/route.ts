@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { getAuthUser } from '@/lib/auth';
 import { checkUserAIAccess, checkFeatureAccess, incrementUsage, buildSystemPrompt, getAIConfig } from '@/lib/ai';
-import { selectProvider, incrementProviderUsage } from '@/lib/ai-router';
+import { selectProvider, selectProviderExcluding, incrementProviderUsage } from '@/lib/ai-router';
 import { callProviderStream } from '@/lib/ai-providers';
 
 // POST - send message and get AI response (SSE streaming)
@@ -98,8 +98,18 @@ export async function POST(
       { role: 'user', content: content.trim() },
     ];
 
-    // 8. Call provider with streaming
-    const stream = await callProviderStream(provider, messages, { maxTokens, temperature });
+    // 8. Call provider with streaming (with fallback retry)
+    let stream: ReadableStream<Uint8Array>;
+    let activeProvider = provider;
+    try {
+      stream = await callProviderStream(provider, messages, { maxTokens, temperature });
+    } catch (firstError) {
+      console.warn(`Provider ${provider.name} failed, trying fallback:`, firstError);
+      const fallback = await selectProviderExcluding(access.plan!, [provider.name]);
+      if (!fallback) throw firstError;
+      activeProvider = fallback;
+      stream = await callProviderStream(fallback, messages, { maxTokens, temperature });
+    }
 
     // Wrap stream to save assistant message on completion
     const encoder = new TextEncoder();
@@ -122,13 +132,13 @@ export async function POST(
                 conversationId,
                 role: 'assistant',
                 content: fullContent,
-                provider: provider.name,
+                provider: activeProvider.name,
                 tokensUsed: estimatedTokens,
                 latencyMs,
               },
             }),
             incrementUsage(user.id, estimatedTokens),
-            incrementProviderUsage(provider.id),
+            incrementProviderUsage(activeProvider.id),
             // Update conversation title from first message
             conv.title ? Promise.resolve() : prisma.aIConversation.update({
               where: { id: conversationId },

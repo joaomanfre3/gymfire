@@ -136,7 +136,7 @@ export default function RoutinesPage() {
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   {routines.map(routine => {
-                    const exerciseNames = [...new Set(routine.sets.map(s => s.exercise.name))];
+                    const exerciseNames = [...new Set((routine.sets || []).map(s => s.exercise.name))];
                     const estMin = exerciseNames.length * 8 + 10;
                     return (
                       <div key={routine.id} style={{
@@ -172,7 +172,7 @@ export default function RoutinesPage() {
                             <TimerIcon /> ~{estMin}min
                           </span>
                           <span style={{ fontSize: '12px', color: '#5C5C72' }}>
-                            {routine.sets.length} séries
+                            {(routine.sets || []).length} séries
                           </span>
                         </div>
 

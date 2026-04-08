@@ -24,6 +24,13 @@ export default function CreateCutPage() {
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<number | null>(null);
 
+  // Close on ESC key
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') router.back(); };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [router]);
+
   useEffect(() => {
     if (!getToken()) { router.push('/login'); return; }
     startCamera();
