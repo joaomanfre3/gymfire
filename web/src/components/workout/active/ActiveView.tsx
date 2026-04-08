@@ -70,7 +70,7 @@ export default function ActiveView({ state, dispatch }: Props) {
       </div>
 
       {/* Content */}
-      <div style={{ maxWidth: '640px', margin: '0 auto', padding: '16px' }}>
+      <div style={{ maxWidth: '640px', margin: '0 auto', padding: '120px 16px 16px' }}>
         {/* Rest timer */}
         {state.restTimerActive && (
           <RestTimer
