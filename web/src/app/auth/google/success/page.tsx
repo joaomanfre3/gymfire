@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect } from 'react';
+import { Suspense, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-export default function GoogleAuthSuccess() {
+function GoogleAuthHandler() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -22,6 +22,10 @@ export default function GoogleAuthSuccess() {
     }
   }, [searchParams, router]);
 
+  return <p>Autenticando...</p>;
+}
+
+export default function GoogleAuthSuccess() {
   return (
     <div style={{
       minHeight: '100vh',
@@ -31,7 +35,9 @@ export default function GoogleAuthSuccess() {
       justifyContent: 'center',
       color: 'var(--text)',
     }}>
-      <p>Autenticando...</p>
+      <Suspense fallback={<p>Carregando...</p>}>
+        <GoogleAuthHandler />
+      </Suspense>
     </div>
   );
 }
