@@ -11,12 +11,13 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { caption, type, visibility, workoutId } = body;
+    const { caption, type, visibility, workoutId, mediaUrls } = body;
 
     const post = await prisma.post.create({
       data: {
         userId: user.id,
         caption: caption || null,
+        mediaUrls: Array.isArray(mediaUrls) ? mediaUrls : [],
         type: type || 'WORKOUT',
         visibility: visibility || 'PUBLIC',
         workoutId: workoutId || null,

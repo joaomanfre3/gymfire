@@ -39,6 +39,10 @@ export default function CreatePostBox() {
   const [selectedWorkoutId, setSelectedWorkoutId] = useState<string | null>(null);
   const [loadingWorkouts, setLoadingWorkouts] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedImages, setSelectedImages] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [uploadingImages, setUploadingImages] = useState(false);
 
   useEffect(() => {
     if (showModal && textareaRef.current) {
@@ -54,11 +58,29 @@ export default function CreatePostBox() {
     setPostType(type);
     setCaption('');
     setSelectedWorkoutId(null);
+    setSelectedImages([]);
+    setImagePreviews([]);
     setShowModal(true);
 
     if (type === 'WORKOUT') {
       loadWorkouts();
     }
+  }
+
+  function handleImageSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    const newFiles = [...selectedImages, ...files].slice(0, 4); // max 4 images
+    setSelectedImages(newFiles);
+    setImagePreviews(newFiles.map(f => URL.createObjectURL(f)));
+  }
+
+  function removeImage(index: number) {
+    setSelectedImages(prev => prev.filter((_, i) => i !== index));
+    setImagePreviews(prev => {
+      URL.revokeObjectURL(prev[index]);
+      return prev.filter((_, i) => i !== index);
+    });
   }
 
   async function loadWorkouts() {
@@ -74,9 +96,30 @@ export default function CreatePostBox() {
   }
 
   async function handleSubmit() {
-    if (!caption.trim() && !selectedWorkoutId) return;
+    if (!caption.trim() && !selectedWorkoutId && selectedImages.length === 0) return;
     setSubmitting(true);
     try {
+      // Upload images first (use fetch directly to avoid Content-Type override)
+      const mediaUrls: string[] = [];
+      if (selectedImages.length > 0) {
+        setUploadingImages(true);
+        const token = getToken();
+        for (const file of selectedImages) {
+          const formData = new FormData();
+          formData.append('file', file);
+          const uploadRes = await fetch('/api/upload', {
+            method: 'POST',
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+            body: formData,
+          });
+          if (uploadRes.ok) {
+            const data = await uploadRes.json();
+            mediaUrls.push(data.url || data.mediaUrl);
+          }
+        }
+        setUploadingImages(false);
+      }
+
       const res = await apiFetch('/api/social/posts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -85,13 +128,15 @@ export default function CreatePostBox() {
           type: postType,
           visibility: 'PUBLIC',
           workoutId: selectedWorkoutId || undefined,
+          mediaUrls: mediaUrls.length > 0 ? mediaUrls : undefined,
         }),
       });
       if (res.ok) {
         setShowModal(false);
         setCaption('');
         setSelectedWorkoutId(null);
-        // Reload feed
+        setSelectedImages([]);
+        setImagePreviews([]);
         window.location.reload();
       }
     } catch { /* ignore */ }
@@ -221,17 +266,17 @@ export default function CreatePostBox() {
               </span>
               <button
                 onClick={handleSubmit}
-                disabled={submitting || (!caption.trim() && !selectedWorkoutId)}
+                disabled={submitting || (!caption.trim() && !selectedWorkoutId && selectedImages.length === 0)}
                 style={{
-                  background: (!caption.trim() && !selectedWorkoutId) ? '#5C5C72' : '#FF6B35',
+                  background: (!caption.trim() && !selectedWorkoutId && selectedImages.length === 0) ? '#5C5C72' : '#FF6B35',
                   color: '#0A0A0F', border: 'none', borderRadius: '8px',
                   padding: '8px 18px', fontSize: '13px', fontWeight: 700,
-                  cursor: (!caption.trim() && !selectedWorkoutId) ? 'not-allowed' : 'pointer',
+                  cursor: (!caption.trim() && !selectedWorkoutId && selectedImages.length === 0) ? 'not-allowed' : 'pointer',
                   opacity: submitting ? 0.6 : 1,
                   transition: 'all 200ms',
                 }}
               >
-                {submitting ? 'Postando...' : 'Postar'}
+                {uploadingImages ? 'Enviando...' : submitting ? 'Postando...' : 'Postar'}
               </button>
             </div>
 
@@ -302,6 +347,56 @@ export default function CreatePostBox() {
               <div style={{ textAlign: 'right', fontSize: '11px', color: '#5C5C72', marginTop: '4px' }}>
                 {caption.length}/500
               </div>
+
+              {/* Image upload area */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleImageSelect}
+                style={{ display: 'none' }}
+              />
+
+              {/* Image previews */}
+              {imagePreviews.length > 0 && (
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: imagePreviews.length === 1 ? '1fr' : 'repeat(2, 1fr)',
+                  gap: '4px', marginTop: '12px', borderRadius: '12px', overflow: 'hidden',
+                }}>
+                  {imagePreviews.map((src, i) => (
+                    <div key={i} style={{ position: 'relative', aspectRatio: imagePreviews.length === 1 ? '4/3' : '1' }}>
+                      <img src={src} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                      <button onClick={() => removeImage(i)} style={{
+                        position: 'absolute', top: '6px', right: '6px',
+                        width: '24px', height: '24px', borderRadius: '50%',
+                        background: 'rgba(0,0,0,0.7)', border: 'none', cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        color: '#fff', fontSize: '14px',
+                      }}>&times;</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Add photo button */}
+              {selectedImages.length < 4 && (
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '8px',
+                    width: '100%', padding: '12px 14px', marginTop: '12px',
+                    borderRadius: '10px', background: '#1A1A28',
+                    border: '1px dashed rgba(148,148,172,0.15)',
+                    color: '#9494AC', fontSize: '13px', fontWeight: 600,
+                    cursor: 'pointer', transition: 'all 200ms',
+                  }}
+                >
+                  <CameraIcon size={16} color="#9494AC" />
+                  {selectedImages.length === 0 ? 'Adicionar foto' : `Adicionar mais (${selectedImages.length}/4)`}
+                </button>
+              )}
 
               {/* Workout selector */}
               {postType === 'WORKOUT' && (
