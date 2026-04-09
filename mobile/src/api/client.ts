@@ -1,7 +1,8 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const BASE_URL = 'http://10.0.2.2:3000';
+// Production API
+const BASE_URL = 'https://gymfire-spmt.vercel.app/api';
 
 const api = axios.create({
   baseURL: BASE_URL,
@@ -72,7 +73,7 @@ api.interceptors.response.use(
         }
 
         const { data } = await axios.post(`${BASE_URL}/auth/refresh`, {
-          refresh_token: refreshToken,
+          refreshToken,
         });
 
         const newAccessToken = data.access_token;

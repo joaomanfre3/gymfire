@@ -75,7 +75,7 @@ export default function ConversationListScreen() {
 
   const fetchConversations = useCallback(async () => {
     try {
-      const { data } = await api.get('/chat/conversations');
+      const { data } = await api.get('/conversations');
       setConversations(Array.isArray(data) ? data : []);
     } catch {
       // silent

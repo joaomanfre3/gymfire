@@ -7,6 +7,7 @@ import RankingScreen from '../screens/Social/RankingScreen';
 import UserProfileScreen from '../screens/Social/UserProfileScreen';
 import FollowersScreen from '../screens/Social/FollowersScreen';
 import FollowingScreen from '../screens/Social/FollowingScreen';
+import GroupsScreen from '../screens/Groups/GroupsScreen';
 
 const Stack = createNativeStackNavigator<SocialStackParamList>();
 
@@ -44,6 +45,11 @@ export default function SocialStack() {
         name="Following"
         component={FollowingScreen}
         options={{ title: 'Following' }}
+      />
+      <Stack.Screen
+        name="Groups"
+        component={GroupsScreen}
+        options={{ headerShown: false }}
       />
     </Stack.Navigator>
   );

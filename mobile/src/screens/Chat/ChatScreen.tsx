@@ -73,7 +73,7 @@ export default function ChatScreen() {
     async (skip = 0, append = false) => {
       try {
         const { data } = await api.get(
-          `/chat/conversations/${conversationId}/messages`,
+          `/messages/${conversationId}`,
           { params: { skip, limit: 50 } },
         );
         const msgs: MessageItem[] = Array.isArray(data) ? data : [];
@@ -95,7 +95,7 @@ export default function ChatScreen() {
   // Mark as read on focus
   useFocusEffect(
     useCallback(() => {
-      api.patch(`/chat/conversations/${conversationId}/read`).catch(() => {});
+      api.post(`/messages/${conversationId}/read`).catch(() => {});
     }, [conversationId]),
   );
 
@@ -108,7 +108,7 @@ export default function ChatScreen() {
 
     try {
       const { data } = await api.post(
-        `/chat/conversations/${conversationId}/messages`,
+        `/messages/${conversationId}`,
         { content: trimmed },
       );
       setMessages((prev) => [data, ...prev]);

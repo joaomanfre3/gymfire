@@ -6,6 +6,7 @@ import FeedScreen from '../screens/Home/FeedScreen';
 import PostDetailScreen from '../screens/Home/PostDetailScreen';
 import SpeedsViewerScreen from '../screens/Speeds/SpeedsViewerScreen';
 import SpeedCreatorScreen from '../screens/Speeds/SpeedCreatorScreen';
+import CreatePostScreen from '../screens/Home/CreatePostScreen';
 
 const Stack = createNativeStackNavigator<HomeStackParamList>();
 
@@ -42,6 +43,11 @@ export default function HomeStack() {
         name="SpeedCreator"
         component={SpeedCreatorScreen}
         options={{ title: 'New Speed', presentation: 'modal' }}
+      />
+      <Stack.Screen
+        name="CreatePost"
+        component={CreatePostScreen}
+        options={{ headerShown: false, presentation: 'modal' }}
       />
     </Stack.Navigator>
   );

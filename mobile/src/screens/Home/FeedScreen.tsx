@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useLayoutEffect } from 'react';
 import {
   View,
   Text,
@@ -52,6 +52,16 @@ export default function FeedScreen() {
   const navigation = useNavigation<Nav>();
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <TouchableOpacity onPress={() => navigation.navigate('CreatePost' as any)} style={{ padding: 6, marginRight: 4 }}>
+          <Ionicons name="add-circle-outline" size={26} color={colors.primary} />
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation]);
 
   const [posts, setPosts] = useState<Post[]>([]);
   const [refreshing, setRefreshing] = useState(false);

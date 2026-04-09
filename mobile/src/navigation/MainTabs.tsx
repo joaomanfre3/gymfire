@@ -7,6 +7,7 @@ import { colors, spacing } from '../theme';
 import HomeStack from './HomeStack';
 import WorkoutStack from './WorkoutStack';
 import SocialStack from './SocialStack';
+import AIChatScreen from '../screens/AI/AIChatScreen';
 import ChatStack from './ChatStack';
 import ProfileStack from './ProfileStack';
 
@@ -62,6 +63,16 @@ export default function MainTabs() {
           tabBarLabel: 'Social',
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="people-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="AITab"
+        component={AIChatScreen}
+        options={{
+          tabBarLabel: 'AI',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="sparkles-outline" size={size} color={color} />
           ),
         }}
       />

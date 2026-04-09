@@ -67,9 +67,8 @@ export default function NewConversationScreen() {
     setCreating(true);
 
     try {
-      const { data } = await api.post('/chat/conversations', {
-        participantIds: [user.id],
-        type: 'DIRECT',
+      const { data } = await api.post('/conversations', {
+        targetUserId: user.id,
       });
 
       navigation.replace('Chat', {

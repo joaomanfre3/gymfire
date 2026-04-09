@@ -36,8 +36,7 @@ export default function RankingScreen() {
 
   const fetchRanking = useCallback(async () => {
     try {
-      const endpoint = tab === 'weekly' ? '/ranking/weekly' : '/ranking/all-time';
-      const { data } = await api.get(endpoint);
+      const { data } = await api.get('/ranking', { params: { type: tab === 'weekly' ? 'weekly' : 'alltime' } });
       setEntries(Array.isArray(data) ? data : data.data ?? []);
     } catch {
       setEntries([]);

@@ -83,7 +83,7 @@ export default function SpeedsViewerScreen() {
 
   const fetchFeed = async () => {
     try {
-      const { data } = await api.get('/speeds/feed');
+      const { data } = await api.get('/drops');
       const feed: SpeedGroup[] = Array.isArray(data) ? data : [];
       setGroups(feed);
 

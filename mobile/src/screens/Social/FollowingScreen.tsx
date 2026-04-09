@@ -32,7 +32,7 @@ function avatarColor(name: string): string {
 }
 
 export default function FollowingScreen({ route }: Props) {
-  const { userId } = route.params;
+  const { userId, username } = route.params as { userId: string; username?: string };
   const navigation = useNavigation<Nav>();
 
   const [users, setUsers] = useState<User[]>([]);
@@ -46,7 +46,7 @@ export default function FollowingScreen({ route }: Props) {
     async (reset: boolean) => {
       const skip = reset ? 0 : skipRef.current;
       try {
-        const { data } = await api.get(`/social/following/${userId}`, {
+        const { data } = await api.get(`/users/${username || userId}/following`, {
           params: { skip, limit: PAGE_SIZE },
         });
         const list: User[] = Array.isArray(data) ? data : data.data ?? [];

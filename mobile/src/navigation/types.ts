@@ -7,6 +7,7 @@ export type MainTabsParamList = {
   HomeTab: undefined;
   WorkoutTab: undefined;
   SocialTab: undefined;
+  AITab: undefined;
   ChatTab: undefined;
   ProfileTab: undefined;
 };
@@ -16,6 +17,7 @@ export type HomeStackParamList = {
   PostDetail: { postId: string };
   SpeedsViewer: { userId: string };
   SpeedCreator: undefined;
+  CreatePost: undefined;
 };
 
 export type WorkoutStackParamList = {
@@ -33,8 +35,9 @@ export type SocialStackParamList = {
   Search: undefined;
   Ranking: undefined;
   UserProfile: { username: string };
-  Followers: { userId: string };
-  Following: { userId: string };
+  Followers: { userId: string; username?: string };
+  Following: { userId: string; username?: string };
+  Groups: undefined;
 };
 
 export type ChatStackParamList = {

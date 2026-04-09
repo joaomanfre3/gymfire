@@ -37,11 +37,10 @@ export default function EditProfileScreen() {
 
     setSaving(true);
     try {
-      const { data } = await api.patch('/users/profile', {
+      const { data } = await api.patch('/users/update-profile', {
         displayName: displayName.trim(),
         bio: bio.trim() || undefined,
         avatarUrl: avatarUrl.trim() || undefined,
-        coverUrl: coverUrl.trim() || undefined,
       });
 
       // Update the store with new user data
