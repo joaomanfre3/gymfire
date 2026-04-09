@@ -229,6 +229,8 @@ export default function DropsBar() {
       {viewingUser && (
         <DropViewer
           user={viewingUser}
+          allUsers={dropUsers}
+          startUserIndex={dropUsers.findIndex(u => u.userId === viewingUser.userId)}
           onClose={handleCloseViewer}
           onViewed={handleDropViewed}
           onDeleted={handleDropDeleted}

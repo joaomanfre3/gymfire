@@ -153,7 +153,7 @@ export default function DropsPage() {
       </main>
 
       {viewingUser && (
-        <DropViewer user={viewingUser} onClose={() => { setViewingUser(null); loadDrops(); }} onViewed={handleViewed} onDeleted={() => loadDrops()} />
+        <DropViewer user={viewingUser} allUsers={dropUsers} startUserIndex={dropUsers.findIndex(u => u.userId === viewingUser.userId)} onClose={() => { setViewingUser(null); loadDrops(); }} onViewed={handleViewed} onDeleted={() => loadDrops()} />
       )}
       {showCreator && (
         <DropCreator onClose={() => setShowCreator(false)} onCreated={() => { setShowCreator(false); loadDrops(); }} />

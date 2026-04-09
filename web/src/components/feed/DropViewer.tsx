@@ -33,6 +33,8 @@ interface CommentItem {
 
 interface Props {
   user: DropUser;
+  allUsers?: DropUser[];
+  startUserIndex?: number;
   onClose: () => void;
   onViewed: (dropId: string) => void;
   onDeleted?: (dropId: string) => void;
@@ -46,7 +48,6 @@ function timeAgoShort(dateStr: string): string {
   return `${hours}h`;
 }
 
-// Render caption with @mentions highlighted
 function CaptionText({ text }: { text: string }) {
   const parts = text.split(/(@\w+)/g);
   return (
@@ -62,19 +63,30 @@ function CaptionText({ text }: { text: string }) {
   );
 }
 
-export default function DropViewer({ user, onClose, onViewed, onDeleted }: Props) {
+export default function DropViewer({ user, allUsers, startUserIndex, onClose, onViewed, onDeleted }: Props) {
   const currentUser = getUser();
-  const isOwner = currentUser?.id === user.userId;
 
-  const [drops, setDrops] = useState(user.drops);
+  // Multi-user navigation
+  const users = allUsers && allUsers.length > 0 ? allUsers : [user];
+  const [userIndex, setUserIndex] = useState(() => {
+    if (startUserIndex !== undefined) return startUserIndex;
+    if (allUsers) return allUsers.findIndex(u => u.userId === user.userId);
+    return 0;
+  });
+
+  const activeUser = users[Math.max(0, Math.min(userIndex, users.length - 1))];
+  const isOwner = currentUser?.id === activeUser.userId;
+
+  const [drops, setDrops] = useState(activeUser.drops);
   const [currentIndex, setCurrentIndex] = useState(() => {
-    const firstUnseen = user.drops.findIndex(d => !d.seen);
+    const firstUnseen = activeUser.drops.findIndex(d => !d.seen);
     return firstUnseen >= 0 ? firstUnseen : 0;
   });
   const [progress, setProgress] = useState(0);
   const [paused, setPaused] = useState(false);
   const timerRef = useRef<number | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [slideDirection, setSlideDirection] = useState<'left' | 'right' | null>(null);
 
   // UI states
   const [showComments, setShowComments] = useState(false);
@@ -85,6 +97,20 @@ export default function DropViewer({ user, onClose, onViewed, onDeleted }: Props
   const [likeAnimating, setLikeAnimating] = useState(false);
   const commentInputRef = useRef<HTMLInputElement>(null);
   const lastTapRef = useRef(0);
+
+  // Update drops when user changes
+  useEffect(() => {
+    const u = users[Math.max(0, Math.min(userIndex, users.length - 1))];
+    setDrops(u.drops);
+    const firstUnseen = u.drops.findIndex(d => !d.seen);
+    setCurrentIndex(firstUnseen >= 0 ? firstUnseen : 0);
+    setProgress(0);
+    setShowComments(false);
+    setShowMenu(false);
+    setPaused(false);
+    // Clear slide animation after transition
+    setTimeout(() => setSlideDirection(null), 350);
+  }, [userIndex]);
 
   const drop = drops[currentIndex];
   const isVideo = drop?.mediaType === 'VIDEO';
@@ -116,7 +142,7 @@ export default function DropViewer({ user, onClose, onViewed, onDeleted }: Props
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [currentIndex, paused, isVideo, showComments]);
+  }, [currentIndex, userIndex, paused, isVideo, showComments]);
 
   // Pause timer when comments panel is open
   useEffect(() => {
@@ -137,15 +163,20 @@ export default function DropViewer({ user, onClose, onViewed, onDeleted }: Props
 
   const handleVideoEnded = useCallback(() => {
     goNext();
-  }, [currentIndex]);
+  }, [currentIndex, userIndex]);
 
   function goNext() {
     if (timerRef.current) clearInterval(timerRef.current);
     if (currentIndex < drops.length - 1) {
+      // Next drop of same user
       setCurrentIndex(prev => prev + 1);
       setProgress(0);
       setShowComments(false);
       setShowMenu(false);
+    } else if (userIndex < users.length - 1) {
+      // Next user - slide left animation
+      setSlideDirection('left');
+      setUserIndex(prev => prev + 1);
     } else {
       onClose();
     }
@@ -158,6 +189,10 @@ export default function DropViewer({ user, onClose, onViewed, onDeleted }: Props
       setProgress(0);
       setShowComments(false);
       setShowMenu(false);
+    } else if (userIndex > 0) {
+      // Previous user - slide right animation
+      setSlideDirection('right');
+      setUserIndex(prev => prev - 1);
     }
   }
 
@@ -166,7 +201,6 @@ export default function DropViewer({ user, onClose, onViewed, onDeleted }: Props
     if (showComments || showMenu) return;
     const now = Date.now();
     if (now - lastTapRef.current < 300) {
-      // Double tap = like
       toggleLike();
       lastTapRef.current = 0;
       return;
@@ -174,7 +208,7 @@ export default function DropViewer({ user, onClose, onViewed, onDeleted }: Props
     lastTapRef.current = now;
 
     setTimeout(() => {
-      if (lastTapRef.current === 0) return; // was double tap
+      if (lastTapRef.current === 0) return;
       const rect = e.currentTarget.getBoundingClientRect();
       const x = (e as React.MouseEvent).clientX - rect.left;
       if (x < rect.width * 0.3) {
@@ -212,24 +246,33 @@ export default function DropViewer({ user, onClose, onViewed, onDeleted }: Props
     }
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [currentIndex, showComments, showMenu]);
+  }, [currentIndex, userIndex, showComments, showMenu]);
 
-  // Swipe detection
-  const touchStartY = useRef(0);
+  // Swipe detection (horizontal for user nav, vertical for close/comments)
+  const touchStartRef = useRef({ x: 0, y: 0 });
   function handleTouchStart(e: React.TouchEvent) {
-    touchStartY.current = e.touches[0].clientY;
+    touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
   }
   function handleTouchEnd(e: React.TouchEvent) {
-    const deltaY = e.changedTouches[0].clientY - touchStartY.current;
-    if (deltaY > 100 && !showComments) onClose();
-    if (deltaY < -100 && !showComments) setShowComments(true);
+    const deltaX = e.changedTouches[0].clientX - touchStartRef.current.x;
+    const deltaY = e.changedTouches[0].clientY - touchStartRef.current.y;
+
+    // Prioritize the dominant direction
+    if (Math.abs(deltaX) > Math.abs(deltaY)) {
+      // Horizontal swipe
+      if (deltaX < -80) goNext();
+      else if (deltaX > 80) goPrev();
+    } else {
+      // Vertical swipe
+      if (deltaY > 100 && !showComments) onClose();
+      if (deltaY < -100 && !showComments) setShowComments(true);
+    }
   }
 
   // ==================== INTERACTIONS ====================
 
   async function toggleLike() {
     if (!currentUser || !drop) return;
-    // Optimistic update
     setDrops(prev => prev.map((d, i) =>
       i === currentIndex
         ? { ...d, isLiked: !d.isLiked, likesCount: d.likesCount + (d.isLiked ? -1 : 1) }
@@ -253,7 +296,13 @@ export default function DropViewer({ user, onClose, onViewed, onDeleted }: Props
         onDeleted?.(drop.id);
         const newDrops = drops.filter((_, i) => i !== currentIndex);
         if (newDrops.length === 0) {
-          onClose();
+          // No more drops for this user, go to next user or close
+          if (userIndex < users.length - 1) {
+            setSlideDirection('left');
+            setUserIndex(prev => prev + 1);
+          } else {
+            onClose();
+          }
         } else {
           setDrops(newDrops);
           setCurrentIndex(Math.min(currentIndex, newDrops.length - 1));
@@ -266,10 +315,7 @@ export default function DropViewer({ user, onClose, onViewed, onDeleted }: Props
     if (!drop) return;
     setShowMenu(false);
     try {
-      const res = await apiFetch(`/api/drops/${drop.id}/repost`, { method: 'POST' });
-      if (res.ok) {
-        // Show brief feedback
-      }
+      await apiFetch(`/api/drops/${drop.id}/repost`, { method: 'POST' });
     } catch { /* ignore */ }
   }
 
@@ -311,13 +357,39 @@ export default function DropViewer({ user, onClose, onViewed, onDeleted }: Props
 
   if (!drop) return null;
 
+  // Slide animation class
+  const slideAnim = slideDirection === 'left'
+    ? 'dropSlideInFromRight'
+    : slideDirection === 'right'
+      ? 'dropSlideInFromLeft'
+      : undefined;
+
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 1000,
       background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center',
     }}>
+      {/* User navigation dots */}
+      {users.length > 1 && (
+        <div style={{
+          position: 'absolute', bottom: '8px', left: '50%', transform: 'translateX(-50%)',
+          zIndex: 30, display: 'flex', gap: '4px',
+        }}>
+          {users.map((_, i) => (
+            <div key={i} style={{
+              width: i === userIndex ? '16px' : '6px',
+              height: '6px', borderRadius: '3px',
+              background: i === userIndex ? '#FF6B35' : 'rgba(255,255,255,0.3)',
+              transition: 'all 300ms',
+            }} />
+          ))}
+        </div>
+      )}
+
       {/* Container 9:16 */}
       <div
+        key={`user-${userIndex}`}
+        className={slideAnim}
         style={{
           position: 'relative', width: '100%', maxWidth: '420px',
           height: '100%', maxHeight: '100vh',
@@ -358,26 +430,24 @@ export default function DropViewer({ user, onClose, onViewed, onDeleted }: Props
         }}>
           <div style={{
             width: '32px', height: '32px', borderRadius: '50%', overflow: 'hidden',
-            background: user.avatarUrl ? 'transparent' : 'linear-gradient(135deg, #FF6B35, #E05520)',
+            background: activeUser.avatarUrl ? 'transparent' : 'linear-gradient(135deg, #FF6B35, #E05520)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             color: '#fff', fontWeight: 700, fontSize: '13px', flexShrink: 0,
           }}>
-            {user.avatarUrl
-              ? <img src={user.avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              : user.displayName[0].toUpperCase()
+            {activeUser.avatarUrl
+              ? <img src={activeUser.avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              : activeUser.displayName[0].toUpperCase()
             }
           </div>
-          <span style={{ fontSize: '13px', fontWeight: 700, color: '#fff' }}>{user.username}</span>
+          <span style={{ fontSize: '13px', fontWeight: 700, color: '#fff' }}>{activeUser.username}</span>
           <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)' }}>{timeAgoShort(drop.createdAt)}</span>
           <div style={{ flex: 1 }} />
 
-          {/* Three dots menu */}
           <button onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }} style={{
             background: 'none', border: 'none', cursor: 'pointer', padding: '4px',
             color: '#fff', fontSize: '20px', lineHeight: 1,
           }}>•••</button>
 
-          {/* Close */}
           <button onClick={(e) => { e.stopPropagation(); onClose(); }} style={{
             background: 'none', border: 'none', cursor: 'pointer', padding: '4px',
             color: '#fff', fontSize: '24px', lineHeight: 1,
@@ -429,6 +499,7 @@ export default function DropViewer({ user, onClose, onViewed, onDeleted }: Props
         {/* Media */}
         {isVideo ? (
           <video
+            key={`video-${drop.id}`}
             ref={videoRef}
             src={drop.mediaUrl}
             autoPlay
@@ -440,6 +511,7 @@ export default function DropViewer({ user, onClose, onViewed, onDeleted }: Props
           />
         ) : (
           <img
+            key={`img-${drop.id}`}
             src={drop.mediaUrl}
             alt=""
             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
@@ -465,7 +537,6 @@ export default function DropViewer({ user, onClose, onViewed, onDeleted }: Props
           position: 'absolute', right: '12px', bottom: drop.caption ? '100px' : '60px',
           zIndex: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px',
         }}>
-          {/* Like */}
           <button onClick={(e) => { e.stopPropagation(); toggleLike(); }} style={{
             background: 'none', border: 'none', cursor: 'pointer', padding: 0,
             display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px',
@@ -483,7 +554,6 @@ export default function DropViewer({ user, onClose, onViewed, onDeleted }: Props
             )}
           </button>
 
-          {/* Comment */}
           <button onClick={(e) => { e.stopPropagation(); openComments(); }} style={{
             background: 'none', border: 'none', cursor: 'pointer', padding: 0,
             display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px',
@@ -496,7 +566,6 @@ export default function DropViewer({ user, onClose, onViewed, onDeleted }: Props
             )}
           </button>
 
-          {/* Repost (non-owner) */}
           {!isOwner && (
             <button onClick={(e) => { e.stopPropagation(); handleRepost(); }} style={{
               background: 'none', border: 'none', cursor: 'pointer', padding: 0,
@@ -508,7 +577,6 @@ export default function DropViewer({ user, onClose, onViewed, onDeleted }: Props
             </button>
           )}
 
-          {/* Delete (owner) */}
           {isOwner && (
             <button onClick={(e) => { e.stopPropagation(); handleDelete(); }} style={{
               background: 'none', border: 'none', cursor: 'pointer', padding: 0,
@@ -531,7 +599,7 @@ export default function DropViewer({ user, onClose, onViewed, onDeleted }: Props
           </div>
         )}
 
-        {/* Quick reply bar (non-owner, when comments panel is closed) */}
+        {/* Quick reply bar */}
         {!isOwner && !showComments && (
           <div
             onClick={(e) => e.stopPropagation()}
@@ -556,7 +624,7 @@ export default function DropViewer({ user, onClose, onViewed, onDeleted }: Props
           </div>
         )}
 
-        {/* Comments panel (slide up) */}
+        {/* Comments panel */}
         {showComments && (
           <div
             onClick={(e) => e.stopPropagation()}
@@ -567,23 +635,16 @@ export default function DropViewer({ user, onClose, onViewed, onDeleted }: Props
               animation: 'slideUp 250ms ease',
             }}
           >
-            {/* Handle bar */}
-            <div style={{
-              display: 'flex', justifyContent: 'center', padding: '10px 0 4px',
-            }}>
-              <div style={{
-                width: '36px', height: '4px', borderRadius: '2px',
-                background: 'rgba(148,148,172,0.3)',
-              }} />
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 0 4px' }}>
+              <div style={{ width: '36px', height: '4px', borderRadius: '2px', background: 'rgba(148,148,172,0.3)' }} />
             </div>
 
-            {/* Title */}
             <div style={{
               padding: '8px 16px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
               borderBottom: '1px solid rgba(148,148,172,0.08)',
             }}>
               <span style={{ fontSize: '15px', fontWeight: 700, color: '#F0F0F8' }}>
-                {isOwner ? 'Mensagens' : `Responder a ${user.displayName.split(' ')[0]}`}
+                {isOwner ? 'Mensagens' : `Responder a ${activeUser.displayName.split(' ')[0]}`}
               </span>
               <button onClick={() => setShowComments(false)} style={{
                 background: 'none', border: 'none', cursor: 'pointer',
@@ -591,15 +652,12 @@ export default function DropViewer({ user, onClose, onViewed, onDeleted }: Props
               }}>&times;</button>
             </div>
 
-            {/* Comments list */}
             <div style={{
               flex: 1, overflowY: 'auto', padding: '12px 16px',
               display: 'flex', flexDirection: 'column', gap: '12px',
             }}>
               {comments.length === 0 && (
-                <div style={{
-                  textAlign: 'center', padding: '24px 0', color: '#5C5C72', fontSize: '13px',
-                }}>
+                <div style={{ textAlign: 'center', padding: '24px 0', color: '#5C5C72', fontSize: '13px' }}>
                   {isOwner ? 'Nenhuma mensagem ainda.' : 'Envie uma mensagem privada sobre este drop.'}
                 </div>
               )}
@@ -626,7 +684,6 @@ export default function DropViewer({ user, onClose, onViewed, onDeleted }: Props
               ))}
             </div>
 
-            {/* Comment input */}
             <div style={{
               padding: '12px 16px', borderTop: '1px solid rgba(148,148,172,0.08)',
               display: 'flex', gap: '10px', alignItems: 'center',
@@ -637,7 +694,7 @@ export default function DropViewer({ user, onClose, onViewed, onDeleted }: Props
                 value={commentText}
                 onChange={e => setCommentText(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && sendComment()}
-                placeholder={isOwner ? 'Responder...' : `Mensagem para ${user.displayName.split(' ')[0]}...`}
+                placeholder={isOwner ? 'Responder...' : `Mensagem para ${activeUser.displayName.split(' ')[0]}...`}
                 maxLength={500}
                 style={{
                   flex: 1, padding: '10px 16px', borderRadius: '24px',
@@ -689,6 +746,16 @@ export default function DropViewer({ user, onClose, onViewed, onDeleted }: Props
           from { transform: translateY(100%); }
           to { transform: translateY(0); }
         }
+        @keyframes dropSlideInFromRight {
+          from { transform: translateX(100%); opacity: 0.5; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes dropSlideInFromLeft {
+          from { transform: translateX(-100%); opacity: 0.5; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+        .dropSlideInFromRight { animation: dropSlideInFromRight 300ms ease-out; }
+        .dropSlideInFromLeft { animation: dropSlideInFromLeft 300ms ease-out; }
       `}</style>
     </div>
   );
