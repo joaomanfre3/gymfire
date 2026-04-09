@@ -1,15 +1,18 @@
-import React, { useState, useEffect, useCallback, useRef, useLayoutEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
+  Image,
   StyleSheet,
   TouchableOpacity,
   FlatList,
   RefreshControl,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
@@ -18,6 +21,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { HomeStackParamList } from '../../navigation/types';
 import { Post, User, WorkoutSet } from '../../types';
 import api from '../../api/client';
+import DropsBar from '../../components/DropsBar';
 
 type Nav = NativeStackNavigationProp<HomeStackParamList, 'Feed'>;
 
@@ -48,20 +52,64 @@ function avatarColor(name: string): string {
 
 const PAGE_SIZE = 20;
 
+function FeedHeader({ onCreatePost }: { onCreatePost: () => void }) {
+  const insets = useSafeAreaInsets();
+  const topPadding = Math.max(insets.top, Platform.OS === 'android' ? 24 : 0);
+
+  return (
+    <View style={[headerStyles.container, { paddingTop: topPadding }]}>
+      <View style={headerStyles.row}>
+        <TouchableOpacity onPress={onCreatePost} style={headerStyles.iconBtn}>
+          <Ionicons name="add" size={28} color="#FFFFFF" />
+        </TouchableOpacity>
+
+        <Image
+          source={require('../../../assets/gymfire-logo.png')}
+          style={headerStyles.logo}
+        />
+
+        <TouchableOpacity onPress={() => {}} style={headerStyles.iconBtn}>
+          <Ionicons name="notifications-outline" size={26} color="#FFFFFF" />
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
+const headerStyles = StyleSheet.create({
+  container: {
+    backgroundColor: '#000000',
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    height: 48,
+  },
+  iconBtn: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  logo: {
+    width: 130,
+    height: 36,
+    resizeMode: 'contain',
+  },
+});
+
+class DropsBarSafe extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
+  state = { hasError: false };
+  static getDerivedStateFromError() { return { hasError: true }; }
+  render() { return this.state.hasError ? null : this.props.children; }
+}
+
 export default function FeedScreen() {
   const navigation = useNavigation<Nav>();
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
-
-  useLayoutEffect(() => {
-    navigation.setOptions({
-      headerRight: () => (
-        <TouchableOpacity onPress={() => navigation.navigate('CreatePost' as any)} style={{ padding: 6, marginRight: 4 }}>
-          <Ionicons name="add-circle-outline" size={26} color={colors.primary} />
-        </TouchableOpacity>
-      ),
-    });
-  }, [navigation]);
 
   const [posts, setPosts] = useState<Post[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -320,22 +368,13 @@ export default function FeedScreen() {
   // ── Main render ──────────────────────────────────────────────
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <Text style={styles.logo}>{'\uD83D\uDD25'} GymFire</Text>
-          {streak > 0 && (
-            <View style={styles.streakBadge}>
-              <Ionicons name="flame" size={14} color={colors.fire} />
-              <Text style={styles.streakBadgeText}>{streak}</Text>
-            </View>
-          )}
-        </View>
-        <TouchableOpacity onPress={logout} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-          <Ionicons name="log-out-outline" size={24} color={colors.textSecondary} />
-        </TouchableOpacity>
-      </View>
-
+      <FeedHeader onCreatePost={() => navigation.navigate('MediaPicker')} />
+      <DropsBarSafe>
+        <DropsBar
+          onOpenDrops={(uid) => navigation.navigate('SpeedsViewer', { userId: uid })}
+          onCreateDrop={() => navigation.navigate('SpeedCreator')}
+        />
+      </DropsBarSafe>
       {initialLoading ? (
         <View style={styles.loader}>
           <ActivityIndicator size="large" color={colors.primary} />

@@ -10,6 +10,8 @@ import {
   Alert,
   ScrollView,
   ActivityIndicator,
+  Image,
+  Dimensions,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,6 +21,7 @@ import { HomeStackParamList } from '../../navigation/types';
 import { useAuthStore } from '../../stores/authStore';
 
 type Props = NativeStackScreenProps<HomeStackParamList, 'CreatePost'>;
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 type PostType = 'WORKOUT' | 'MOTIVATION' | 'PROGRESS' | 'TIP';
 
@@ -29,8 +32,9 @@ const postTypes: Array<{ type: PostType; label: string; icon: string }> = [
   { type: 'TIP', label: 'Dica', icon: 'bulb-outline' },
 ];
 
-export default function CreatePostScreen({ navigation }: Props) {
+export default function CreatePostScreen({ navigation, route }: Props) {
   const user = useAuthStore(s => s.user);
+  const mediaUri = route.params?.mediaUri;
   const [caption, setCaption] = useState('');
   const [postType, setPostType] = useState<PostType>('WORKOUT');
   const [submitting, setSubmitting] = useState(false);
@@ -62,7 +66,7 @@ export default function CreatePostScreen({ navigation }: Props) {
         <TouchableOpacity onPress={() => navigation.goBack()} style={{ padding: 4 }}>
           <Ionicons name="close" size={24} color={colors.textSecondary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Novo Post</Text>
+        <Text style={styles.headerTitle}>Nova Spark</Text>
         <TouchableOpacity
           onPress={handleSubmit}
           disabled={submitting || !caption.trim()}
@@ -77,6 +81,15 @@ export default function CreatePostScreen({ navigation }: Props) {
       </View>
 
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
+        {/* Selected image preview */}
+        {mediaUri && (
+          <Image
+            source={{ uri: mediaUri }}
+            style={styles.mediaPreview}
+            resizeMode="cover"
+          />
+        )}
+
         {/* Type selector */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
           <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -127,7 +140,7 @@ export default function CreatePostScreen({ navigation }: Props) {
           placeholderTextColor={colors.textMuted}
           multiline
           maxLength={500}
-          autoFocus
+          autoFocus={!mediaUri}
         />
         <Text style={styles.charCount}>{caption.length}/500</Text>
       </ScrollView>
@@ -172,4 +185,11 @@ const styles = StyleSheet.create({
     minHeight: 120, textAlignVertical: 'top',
   },
   charCount: { fontSize: 11, color: colors.textMuted, textAlign: 'right', marginTop: 4 },
+  mediaPreview: {
+    width: SCREEN_WIDTH - 32,
+    height: (SCREEN_WIDTH - 32) * 0.75,
+    borderRadius: 12,
+    marginBottom: 16,
+    backgroundColor: colors.surface,
+  },
 });

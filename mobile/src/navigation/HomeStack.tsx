@@ -7,6 +7,7 @@ import PostDetailScreen from '../screens/Home/PostDetailScreen';
 import SpeedsViewerScreen from '../screens/Speeds/SpeedsViewerScreen';
 import SpeedCreatorScreen from '../screens/Speeds/SpeedCreatorScreen';
 import CreatePostScreen from '../screens/Home/CreatePostScreen';
+import MediaPickerScreen from '../screens/Home/MediaPickerScreen';
 
 const Stack = createNativeStackNavigator<HomeStackParamList>();
 
@@ -14,7 +15,8 @@ export default function HomeStack() {
   return (
     <Stack.Navigator
       screenOptions={{
-        headerStyle: { backgroundColor: colors.surface },
+        headerStyle: { backgroundColor: 'transparent' },
+        headerShadowVisible: false,
         headerTintColor: colors.text,
         headerTitleStyle: { fontWeight: '600' },
         contentStyle: { backgroundColor: colors.background },
@@ -23,7 +25,7 @@ export default function HomeStack() {
       <Stack.Screen
         name="Feed"
         component={FeedScreen}
-        options={{ title: 'GymFire' }}
+        options={{ headerShown: false }}
       />
       <Stack.Screen
         name="PostDetail"
@@ -43,6 +45,15 @@ export default function HomeStack() {
         name="SpeedCreator"
         component={SpeedCreatorScreen}
         options={{ title: 'New Speed', presentation: 'modal' }}
+      />
+      <Stack.Screen
+        name="MediaPicker"
+        component={MediaPickerScreen}
+        options={{
+          headerShown: false,
+          presentation: 'fullScreenModal',
+          animation: 'slide_from_bottom',
+        }}
       />
       <Stack.Screen
         name="CreatePost"

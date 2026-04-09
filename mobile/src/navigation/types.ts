@@ -17,7 +17,8 @@ export type HomeStackParamList = {
   PostDetail: { postId: string };
   SpeedsViewer: { userId: string };
   SpeedCreator: undefined;
-  CreatePost: undefined;
+  MediaPicker: undefined;
+  CreatePost: { mediaUri?: string } | undefined;
 };
 
 export type WorkoutStackParamList = {

@@ -5,13 +5,16 @@ import {
   StyleSheet,
   TouchableOpacity,
   Image,
+  TextInput,
   Dimensions,
   Animated,
   StatusBar,
-  SafeAreaView,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
@@ -33,6 +36,7 @@ interface Speed {
   viewsCount: number;
   createdAt: string;
   isViewed?: boolean;
+  isLiked?: boolean;
   user: {
     id: string;
     username: string;
@@ -51,9 +55,9 @@ function timeAgo(dateStr: string): string {
   const then = new Date(dateStr).getTime();
   const diff = Math.max(0, now - then);
   const seconds = Math.floor(diff / 1000);
-  if (seconds < 60) return 'now';
+  if (seconds < 60) return 'agora';
   const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m`;
+  if (minutes < 60) return `${minutes}min`;
   const hours = Math.floor(minutes / 60);
   if (hours < 24) return `${hours}h`;
   return `${Math.floor(hours / 24)}d`;
@@ -69,13 +73,18 @@ function avatarColor(name: string): string {
 export default function SpeedsViewerScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
+  const insets = useSafeAreaInsets();
   const { userId } = route.params;
 
   const [groups, setGroups] = useState<SpeedGroup[]>([]);
   const [currentGroupIndex, setCurrentGroupIndex] = useState(0);
   const [currentSpeedIndex, setCurrentSpeedIndex] = useState(0);
+  const [fired, setFired] = useState(false);
+  const [comment, setComment] = useState('');
+  const [paused, setPaused] = useState(false);
   const progressAnim = useRef(new Animated.Value(0)).current;
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const fireScale = useRef(new Animated.Value(1)).current;
+  const animRef = useRef<Animated.CompositeAnimation | null>(null);
 
   useEffect(() => {
     fetchFeed();
@@ -86,63 +95,54 @@ export default function SpeedsViewerScreen() {
       const { data } = await api.get('/drops');
       const feed: SpeedGroup[] = Array.isArray(data) ? data : [];
       setGroups(feed);
-
-      // Find the group matching the target userId
       const targetIndex = feed.findIndex((g) => g.user.id === userId);
-      if (targetIndex >= 0) {
-        setCurrentGroupIndex(targetIndex);
-      }
+      if (targetIndex >= 0) setCurrentGroupIndex(targetIndex);
     } catch {
-      // If feed fails, try to get user's speeds directly
       try {
         const { data } = await api.get(`/speeds/user/${userId}`);
         const speeds: Speed[] = Array.isArray(data) ? data : [];
-        if (speeds.length > 0) {
-          setGroups([{ user: speeds[0].user, speeds }]);
-        }
-      } catch {
-        // silently fail
-      }
+        if (speeds.length > 0) setGroups([{ user: speeds[0].user, speeds }]);
+      } catch {}
     }
   };
 
   const currentGroup = groups[currentGroupIndex];
   const currentSpeed = currentGroup?.speeds[currentSpeedIndex];
 
-  // Mark speed as viewed
+  // Mark as viewed
   useEffect(() => {
     if (currentSpeed) {
-      api.post(`/speeds/${currentSpeed.id}/view`).catch(() => {});
+      api.post(`/drops/${currentSpeed.id}/view`).catch(() => {});
+      setFired(!!currentSpeed.isLiked);
     }
   }, [currentSpeed?.id]);
 
-  // Progress bar auto-advance
+  // Progress bar auto-advance (max 60s)
   useEffect(() => {
-    if (!currentSpeed) return;
+    if (!currentSpeed || paused) return;
 
     progressAnim.setValue(0);
-    const duration = currentSpeed.duration || 5000;
+    const duration = Math.min(currentSpeed.duration || 5000, 60000);
 
     const animation = Animated.timing(progressAnim, {
       toValue: 1,
       duration,
       useNativeDriver: false,
     });
+    animRef.current = animation;
 
     animation.start(({ finished }) => {
-      if (finished) {
-        goNext();
-      }
+      if (finished) goNext();
     });
 
     return () => {
       animation.stop();
+      animRef.current = null;
     };
-  }, [currentGroupIndex, currentSpeedIndex, currentSpeed?.id]);
+  }, [currentGroupIndex, currentSpeedIndex, currentSpeed?.id, paused]);
 
   const goNext = useCallback(() => {
     if (!currentGroup) return;
-
     if (currentSpeedIndex < currentGroup.speeds.length - 1) {
       setCurrentSpeedIndex((i) => i + 1);
     } else if (currentGroupIndex < groups.length - 1) {
@@ -165,7 +165,7 @@ export default function SpeedsViewerScreen() {
 
   const handleTap = useCallback(
     (x: number) => {
-      if (x < SCREEN_WIDTH / 3) {
+      if (x < SCREEN_WIDTH * 0.3) {
         goPrev();
       } else {
         goNext();
@@ -174,16 +174,43 @@ export default function SpeedsViewerScreen() {
     [goPrev, goNext],
   );
 
+  // Fire toggle (boolean, not counter)
+  const toggleFire = useCallback(async () => {
+    const newState = !fired;
+    setFired(newState);
+
+    // Animate the fire icon
+    Animated.sequence([
+      Animated.timing(fireScale, { toValue: 1.4, duration: 120, useNativeDriver: true }),
+      Animated.timing(fireScale, { toValue: 1, duration: 120, useNativeDriver: true }),
+    ]).start();
+
+    if (currentSpeed) {
+      try {
+        await api.post(`/drops/${currentSpeed.id}/like`);
+      } catch {}
+    }
+  }, [fired, currentSpeed, fireScale]);
+
+  // Send comment
+  const sendComment = useCallback(async () => {
+    if (!comment.trim() || !currentSpeed) return;
+    try {
+      await api.post(`/drops/${currentSpeed.id}/comments`, { content: comment.trim() });
+      setComment('');
+    } catch {}
+  }, [comment, currentSpeed]);
+
   if (!currentGroup || !currentSpeed) {
     return (
       <View style={styles.container}>
         <StatusBar barStyle="light-content" />
-        <SafeAreaView style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>No speeds to show</Text>
+        <View style={[styles.emptyContainer, { paddingTop: insets.top }]}>
+          <Text style={styles.emptyText}>Nenhum drop disponivel</Text>
           <TouchableOpacity style={styles.closeBtn} onPress={() => navigation.goBack()}>
-            <Ionicons name="close" size={28} color={colors.text} />
+            <Ionicons name="close" size={28} color="#FFFFFF" />
           </TouchableOpacity>
-        </SafeAreaView>
+        </View>
       </View>
     );
   }
@@ -193,14 +220,19 @@ export default function SpeedsViewerScreen() {
   const bgColor = avatarColor(user.username || 'u');
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
       <StatusBar barStyle="light-content" />
 
-      {/* Media area (tap zones) */}
+      {/* Full screen media */}
       <TouchableOpacity
         style={styles.mediaContainer}
         activeOpacity={1}
         onPress={(e) => handleTap(e.nativeEvent.locationX)}
+        onLongPress={() => setPaused(true)}
+        onPressOut={() => setPaused(false)}
       >
         {currentSpeed.mediaUrl ? (
           <Image
@@ -210,13 +242,14 @@ export default function SpeedsViewerScreen() {
           />
         ) : (
           <View style={[styles.media, styles.mediaPlaceholder]}>
-            <Ionicons name="image-outline" size={64} color={colors.textMuted} />
+            <Ionicons name="image-outline" size={64} color="rgba(255,255,255,0.3)" />
           </View>
         )}
       </TouchableOpacity>
 
-      {/* Progress bars at top */}
-      <SafeAreaView style={styles.topOverlay}>
+      {/* Top overlay: progress bars + user info */}
+      <View style={[styles.topOverlay, { paddingTop: insets.top + 8 }]}>
+        {/* Progress bars */}
         <View style={styles.progressContainer}>
           {currentGroup.speeds.map((_, i) => (
             <View key={i} style={styles.progressTrack}>
@@ -240,36 +273,58 @@ export default function SpeedsViewerScreen() {
           ))}
         </View>
 
-        {/* User info */}
+        {/* User row */}
         <View style={styles.userRow}>
-          <View style={[styles.avatar, { backgroundColor: bgColor }]}>
-            <Text style={styles.avatarText}>{initial}</Text>
-          </View>
+          {user.avatarUrl ? (
+            <Image source={{ uri: user.avatarUrl }} style={styles.userAvatar} />
+          ) : (
+            <View style={[styles.userAvatar, { backgroundColor: bgColor, alignItems: 'center', justifyContent: 'center' }]}>
+              <Text style={styles.userAvatarText}>{initial}</Text>
+            </View>
+          )}
           <Text style={styles.username}>{user.username}</Text>
           <Text style={styles.timeAgo}>{timeAgo(currentSpeed.createdAt)}</Text>
           <View style={{ flex: 1 }} />
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Ionicons name="close" size={28} color={colors.text} />
+          <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+            <Ionicons name="close" size={26} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
-      </SafeAreaView>
-
-      {/* Bottom overlay */}
-      <View style={styles.bottomOverlay}>
-        {currentSpeed.caption ? (
-          <Text style={styles.caption} numberOfLines={3}>
-            {currentSpeed.caption}
-          </Text>
-        ) : null}
-        <View style={styles.viewsRow}>
-          <Ionicons name="eye-outline" size={16} color={colors.textSecondary} />
-          <Text style={styles.viewsText}>{currentSpeed.viewsCount}</Text>
-        </View>
       </View>
-    </View>
+
+      {/* Caption overlay (mentions style) */}
+      {currentSpeed.caption ? (
+        <View style={styles.captionOverlay}>
+          <Text style={styles.captionText}>{currentSpeed.caption}</Text>
+        </View>
+      ) : null}
+
+      {/* Bottom bar: comment input + fire */}
+      <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+        <View style={styles.commentInputContainer}>
+          <TextInput
+            style={styles.commentInput}
+            value={comment}
+            onChangeText={setComment}
+            placeholder="Enviar mensagem..."
+            placeholderTextColor="rgba(255,255,255,0.5)"
+            onSubmitEditing={sendComment}
+            returnKeyType="send"
+            onFocus={() => setPaused(true)}
+            onBlur={() => setPaused(false)}
+          />
+        </View>
+
+        <TouchableOpacity onPress={toggleFire} style={styles.fireBtn}>
+          <Animated.View style={{ transform: [{ scale: fireScale }] }}>
+            <Ionicons
+              name={fired ? 'flame' : 'flame-outline'}
+              size={28}
+              color={fired ? '#FF6B35' : '#FFFFFF'}
+            />
+          </Animated.View>
+        </TouchableOpacity>
+      </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -285,12 +340,12 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: fontSize.lg,
-    color: colors.textSecondary,
+    color: 'rgba(255,255,255,0.5)',
   },
   closeBtn: {
     position: 'absolute',
-    top: spacing.lg,
-    right: spacing.lg,
+    top: 60,
+    right: 20,
   },
   mediaContainer: {
     ...StyleSheet.absoluteFillObject,
@@ -311,79 +366,96 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.sm,
+    paddingHorizontal: 12,
   },
   progressContainer: {
     flexDirection: 'row',
     gap: 3,
-    marginBottom: spacing.md,
+    marginBottom: 12,
   },
   progressTrack: {
     flex: 1,
-    height: 2.5,
+    height: 2,
     backgroundColor: 'rgba(255,255,255,0.3)',
-    borderRadius: 2,
+    borderRadius: 1,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
     backgroundColor: '#FFFFFF',
-    borderRadius: 2,
+    borderRadius: 1,
   },
   userRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
+    gap: 8,
   },
-  avatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
+  userAvatar: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    overflow: 'hidden',
   },
-  avatarText: {
-    fontSize: fontSize.sm,
-    fontWeight: fontWeight.bold as '700',
+  userAvatarText: {
+    fontSize: 14,
+    fontWeight: '700',
     color: '#FFFFFF',
   },
   username: {
-    fontSize: fontSize.md,
-    fontWeight: fontWeight.semibold as '600',
+    fontSize: 14,
+    fontWeight: '600',
     color: '#FFFFFF',
   },
   timeAgo: {
-    fontSize: fontSize.sm,
-    color: 'rgba(255,255,255,0.7)',
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.6)',
   },
 
-  // Bottom overlay
-  bottomOverlay: {
+  // Caption
+  captionOverlay: {
+    position: 'absolute',
+    bottom: 100,
+    left: 16,
+    right: 80,
+  },
+  captionText: {
+    fontSize: 15,
+    color: '#FFFFFF',
+    textShadowColor: 'rgba(0,0,0,0.7)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
+    lineHeight: 22,
+  },
+
+  // Bottom bar
+  bottomBar: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.xxxl,
-    paddingTop: spacing.lg,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-  },
-  caption: {
-    fontSize: fontSize.md,
-    color: '#FFFFFF',
-    marginBottom: spacing.sm,
-    textShadowColor: 'rgba(0,0,0,0.5)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
-  },
-  viewsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    paddingHorizontal: 12,
+    paddingTop: 10,
+    gap: 10,
   },
-  viewsText: {
-    fontSize: fontSize.sm,
-    color: colors.textSecondary,
+  commentInputContainer: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
+    borderRadius: 24,
+    overflow: 'hidden',
+  },
+  commentInput: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  fireBtn: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

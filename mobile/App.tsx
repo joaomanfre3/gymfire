@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer, DefaultTheme, Theme } from '@react-navigation/native';
 import { colors } from './src/theme';
 import { useAuthStore } from './src/stores/authStore';
@@ -27,9 +28,11 @@ export default function App() {
   }, [loadSession]);
 
   return (
-    <NavigationContainer theme={GymFireTheme}>
-      <StatusBar style="light" />
-      <AppNavigator />
-    </NavigationContainer>
+    <SafeAreaProvider>
+      <NavigationContainer theme={GymFireTheme}>
+        <StatusBar style="light" />
+        <AppNavigator />
+      </NavigationContainer>
+    </SafeAreaProvider>
   );
 }
