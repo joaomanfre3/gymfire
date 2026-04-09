@@ -2,6 +2,7 @@
   "expo": {
     "name": "GymFire",
     "slug": "gymfire",
+    "owner": "manfre333",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -26,6 +27,17 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "00087ee8-cd86-48db-a46f-2a65f2fa309a"
+      }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/00087ee8-cd86-48db-a46f-2a65f2fa309a"
     }
   }
 }
