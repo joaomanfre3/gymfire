@@ -126,13 +126,26 @@ export async function GET(request: NextRequest) {
       role: user.role,
     };
 
-    const params = new URLSearchParams({
+    const tokenParams = new URLSearchParams({
       access_token: accessToken,
       refresh_token: refreshToken,
       user_info: JSON.stringify(userInfo),
     });
 
-    return NextResponse.redirect(new URL(`/auth/google/success?${params.toString()}`, request.url));
+    // Check if this is a mobile auth request
+    const stateParam = request.nextUrl.searchParams.get('state');
+    if (stateParam) {
+      try {
+        const state = JSON.parse(stateParam);
+        if (state.mobile_redirect) {
+          return NextResponse.redirect(`${state.mobile_redirect}?${tokenParams.toString()}`);
+        }
+      } catch {
+        // Invalid state JSON, fall through to web redirect
+      }
+    }
+
+    return NextResponse.redirect(new URL(`/auth/google/success?${tokenParams.toString()}`, request.url));
   } catch (error) {
     console.error('Google OAuth error:', error);
     return NextResponse.redirect(new URL('/login?error=oauth_failed', request.url));
