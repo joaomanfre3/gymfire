@@ -53,7 +53,7 @@ function TabIcon({ name, focused }: { name: string; focused: boolean }) {
 
 function CustomTabBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
-  const paddingBottom = Math.max(insets.bottom, Platform.OS === 'android' ? 4 : 0);
+  const paddingBottom = Math.max(insets.bottom, Platform.OS === 'android' ? 48 : 0);
 
   return (
     <View style={[styles.tabBar, { paddingBottom }]}>

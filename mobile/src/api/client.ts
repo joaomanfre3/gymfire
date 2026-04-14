@@ -2,7 +2,7 @@ import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Production API
-const BASE_URL = 'https://gymfire-spmt.vercel.app/api';
+const BASE_URL = 'https://gymfire.vercel.app/api';
 
 const api = axios.create({
   baseURL: BASE_URL,

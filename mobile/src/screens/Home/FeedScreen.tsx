@@ -52,16 +52,14 @@ function avatarColor(name: string): string {
 
 const PAGE_SIZE = 20;
 
-function FeedHeader({ onCreatePost }: { onCreatePost: () => void }) {
+function FeedHeader() {
   const insets = useSafeAreaInsets();
   const topPadding = Math.max(insets.top, Platform.OS === 'android' ? 24 : 0);
 
   return (
     <View style={[headerStyles.container, { paddingTop: topPadding }]}>
       <View style={headerStyles.row}>
-        <TouchableOpacity onPress={onCreatePost} style={headerStyles.iconBtn}>
-          <Ionicons name="add" size={28} color="#FFFFFF" />
-        </TouchableOpacity>
+        <View style={headerStyles.iconBtn} />
 
         <Image
           source={require('../../../assets/gymfire-logo.png')}
@@ -368,11 +366,11 @@ export default function FeedScreen() {
   // ── Main render ──────────────────────────────────────────────
   return (
     <View style={styles.container}>
-      <FeedHeader onCreatePost={() => navigation.navigate('MediaPicker')} />
+      <FeedHeader />
       <DropsBarSafe>
         <DropsBar
           onOpenDrops={(uid) => navigation.navigate('SpeedsViewer', { userId: uid })}
-          onCreateDrop={() => navigation.navigate('SpeedCreator')}
+          onCreateDrop={() => navigation.navigate('MediaPicker')}
         />
       </DropsBarSafe>
       {initialLoading ? (

@@ -122,7 +122,7 @@ export default function AIChatScreen() {
       const token = await AsyncStorage.getItem('access_token');
 
       const response = await fetch(
-        `https://gymfire-spmt.vercel.app/api/ai/conversations/${cId}/messages`,
+        `https://gymfire.vercel.app/api/ai/conversations/${cId}/messages`,
         {
           method: 'POST',
           headers: {

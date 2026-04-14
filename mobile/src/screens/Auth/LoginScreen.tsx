@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
+import * as WebBrowser from 'expo-web-browser';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 import { typography, fontSize, fontWeight } from '../../theme/typography';
@@ -20,15 +21,22 @@ import { AuthStackParamList } from '../../navigation/types';
 import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
 
+WebBrowser.maybeCompleteAuthSession();
+
 type LoginNavProp = NativeStackNavigationProp<AuthStackParamList, 'Login'>;
+
+const API_BASE = 'https://gymfire.vercel.app';
+const APP_SCHEME = 'gymfire';
 
 export default function LoginScreen() {
   const navigation = useNavigation<LoginNavProp>();
   const login = useAuthStore((s) => s.login);
+  const loginWithGoogleTokens = useAuthStore((s) => s.loginWithGoogleTokens);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   const handleLogin = async () => {
     if (!username.trim() || !password.trim()) {
@@ -44,6 +52,41 @@ export default function LoginScreen() {
       setError(result);
     }
     setLoading(false);
+  };
+
+  const handleGoogleLogin = async () => {
+    setGoogleLoading(true);
+    setError(null);
+
+    try {
+      // Our API handles the Google OAuth and redirects back to the app with tokens
+      const mobileRedirect = `${APP_SCHEME}://auth/callback`;
+      const authUrl = `${API_BASE}/api/auth/google?mobile_redirect=${encodeURIComponent(mobileRedirect)}`;
+
+      // Open browser — it will listen for any redirect to gymfire://
+      const result = await WebBrowser.openAuthSessionAsync(authUrl, `${APP_SCHEME}://`);
+
+      if (result.type === 'success' && result.url) {
+        const url = new URL(result.url);
+        const accessToken = url.searchParams.get('access_token');
+        const refreshToken = url.searchParams.get('refresh_token');
+        const userInfoStr = url.searchParams.get('user_info');
+
+        if (accessToken && refreshToken) {
+          const userInfo = userInfoStr ? JSON.parse(userInfoStr) : null;
+          await loginWithGoogleTokens(accessToken, refreshToken, userInfo);
+        } else {
+          setError('Google sign-in failed. Missing tokens.');
+        }
+      } else if (result.type !== 'cancel' && result.type !== 'dismiss') {
+        setError('Google sign-in was interrupted.');
+      }
+    } catch (err: any) {
+      console.log('[GoogleAuth] ERROR:', err?.message, err);
+      setError(err?.message || 'Google sign-in failed.');
+    } finally {
+      setGoogleLoading(false);
+    }
   };
 
   const handleForgotPassword = () => {
@@ -130,9 +173,8 @@ export default function LoginScreen() {
           {/* Google Login */}
           <Button
             title="Continue with Google"
-            onPress={() =>
-              Alert.alert('Google Sign-In', 'Google sign-in coming soon!')
-            }
+            onPress={handleGoogleLogin}
+            loading={googleLoading}
             variant="outline"
             fullWidth
           />

@@ -16,7 +16,7 @@ export type HomeStackParamList = {
   Feed: undefined;
   PostDetail: { postId: string };
   SpeedsViewer: { userId: string };
-  SpeedCreator: undefined;
+  SpeedCreator: { mediaUri?: string } | undefined;
   MediaPicker: undefined;
   CreatePost: { mediaUri?: string } | undefined;
 };

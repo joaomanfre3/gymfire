@@ -1,6 +1,6 @@
 'use strict';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -15,9 +15,10 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as ImagePicker from 'expo-image-picker';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors, spacing } from '../../theme';
 import { HomeStackParamList } from '../../navigation/types';
 import api from '../../api/client';
@@ -26,8 +27,22 @@ type Nav = NativeStackNavigationProp<HomeStackParamList, 'SpeedCreator'>;
 
 export default function SpeedCreatorScreen() {
   const navigation = useNavigation<Nav>();
+  const route = useRoute<RouteProp<HomeStackParamList, 'SpeedCreator'>>();
 
   const [image, setImage] = useState<{ uri: string; type: string; name: string } | null>(null);
+
+  // Pre-populate image when coming from MediaPicker
+  useEffect(() => {
+    const mediaUri = route.params?.mediaUri;
+    if (mediaUri) {
+      const isVideo = /\.(mp4|mov|avi|webm)$/i.test(mediaUri);
+      setImage({
+        uri: mediaUri,
+        type: isVideo ? 'video/mp4' : 'image/jpeg',
+        name: isVideo ? 'gallery-video.mp4' : 'gallery-photo.jpg',
+      });
+    }
+  }, [route.params?.mediaUri]);
   const [caption, setCaption] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -89,10 +104,11 @@ export default function SpeedCreatorScreen() {
         name: image.name,
       } as any);
 
-      const uploadRes = await fetch('https://gymfire-spmt.vercel.app/api/drops/upload', {
+      const token = await AsyncStorage.getItem('access_token');
+      const uploadRes = await fetch('https://gymfire.vercel.app/api/drops/upload', {
         method: 'POST',
         headers: {
-          Authorization: `Bearer ${(await import('@react-native-async-storage/async-storage')).default.getItem('access_token')}`,
+          Authorization: `Bearer ${token}`,
         },
         body: formData,
       });

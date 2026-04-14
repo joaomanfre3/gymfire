@@ -2,12 +2,13 @@
   "expo": {
     "name": "GymFire",
     "slug": "gymfire",
+    "scheme": "gymfire",
     "owner": "manfre333",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -15,7 +16,12 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.gymfire.app"
+      "bundleIdentifier": "com.gymfire.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "GymFire precisa da câmera para criar drops e posts.",
+        "NSPhotoLibraryUsageDescription": "GymFire precisa acessar suas fotos para criar drops e posts.",
+        "NSMicrophoneUsageDescription": "GymFire precisa do microfone para gravar vídeos."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -23,11 +29,46 @@
         "backgroundColor": "#0A0A0F"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.gymfire.app"
+      "package": "com.gymfire.app",
+      "permissions": [
+        "CAMERA",
+        "READ_MEDIA_IMAGES",
+        "READ_MEDIA_VIDEO",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "RECORD_AUDIO"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "GymFire precisa acessar suas fotos para criar drops e posts.",
+          "cameraPermission": "GymFire precisa da câmera para criar drops e posts."
+        }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "GymFire precisa acessar sua galeria para selecionar fotos e vídeos.",
+          "savePhotosPermission": "GymFire precisa salvar fotos na sua galeria.",
+          "isAccessMediaLocationEnabled": true,
+          "granularPermissions": ["photo", "video"]
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "GymFire precisa da câmera para criar drops, cuts e posts.",
+          "microphonePermission": "GymFire precisa do microfone para gravar vídeos.",
+          "recordAudioAndroid": true
+        }
+      ],
+      "expo-web-browser"
+    ],
     "extra": {
       "eas": {
         "projectId": "00087ee8-cd86-48db-a46f-2a65f2fa309a"

@@ -11,6 +11,7 @@ interface AuthState {
   isAuthenticated: boolean;
 
   login: (username: string, password: string) => Promise<string | null>;
+  loginWithGoogleTokens: (accessToken: string, refreshToken: string, userInfo: any) => Promise<void>;
   register: (
     email: string,
     username: string,
@@ -58,6 +59,21 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         'Login failed. Please try again.';
       return message;
     }
+  },
+
+  loginWithGoogleTokens: async (accessToken: string, refreshToken: string, userInfo: any) => {
+    await AsyncStorage.setItem('access_token', accessToken);
+    await AsyncStorage.setItem('refresh_token', refreshToken);
+
+    // Fetch full user profile
+    const { data: user } = await api.get('/auth/me');
+
+    set({
+      token: accessToken,
+      refreshToken,
+      user,
+      isAuthenticated: true,
+    });
   },
 
   register: async (
@@ -119,8 +135,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         isAuthenticated: true,
         isLoading: false,
       });
-    } catch {
-      await AsyncStorage.multiRemove(['access_token', 'refresh_token']);
+    } catch (error) {
+      console.log('loadSession failed, clearing auth:', error);
+      try {
+        await AsyncStorage.multiRemove(['access_token', 'refresh_token']);
+      } catch {
+        // Ignore storage errors
+      }
       set({
         user: null,
         token: null,

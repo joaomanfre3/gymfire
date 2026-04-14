@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
 
   const mobileRedirect = request.nextUrl.searchParams.get('mobile_redirect');
 
-  const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL || 'https://gymfire-spmt.vercel.app'}/api/auth/callback/google`;
+  const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL || 'https://gymfire.vercel.app'}/api/auth/callback/google`;
 
   const params = new URLSearchParams({
     client_id: clientId,

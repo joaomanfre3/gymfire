@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
 
   const clientId = process.env.GOOGLE_CLIENT_ID!;
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET!;
-  const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL || 'https://gymfire-spmt.vercel.app'}/api/auth/callback/google`;
+  const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL || 'https://gymfire.vercel.app'}/api/auth/callback/google`;
 
   try {
     // Exchange code for tokens
