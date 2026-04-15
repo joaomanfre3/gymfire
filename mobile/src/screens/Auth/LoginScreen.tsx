@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
+  Image,
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
@@ -13,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
 import * as WebBrowser from 'expo-web-browser';
+import { makeRedirectUri } from 'expo-auth-session';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 import { typography, fontSize, fontWeight } from '../../theme/typography';
@@ -40,7 +42,7 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
     if (!username.trim() || !password.trim()) {
-      setError('Please fill in all fields');
+      setError('Preencha todos os campos');
       return;
     }
 
@@ -59,12 +61,12 @@ export default function LoginScreen() {
     setError(null);
 
     try {
-      // Our API handles the Google OAuth and redirects back to the app with tokens
-      const mobileRedirect = `${APP_SCHEME}://auth/callback`;
-      const authUrl = `${API_BASE}/api/auth/google?mobile_redirect=${encodeURIComponent(mobileRedirect)}`;
+      // Generate redirect URI for current environment (exp:// in Expo Go, gymfire:// in dev build)
+      const redirectUri = makeRedirectUri({ scheme: APP_SCHEME, path: 'auth/callback' });
+      const authUrl = `${API_BASE}/api/auth/google?mobile_redirect=${encodeURIComponent(redirectUri)}`;
 
-      // Open browser — it will listen for any redirect to gymfire://
-      const result = await WebBrowser.openAuthSessionAsync(authUrl, `${APP_SCHEME}://`);
+      // Open browser — listen for redirect back to our app
+      const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUri);
 
       if (result.type === 'success' && result.url) {
         const url = new URL(result.url);
@@ -76,14 +78,14 @@ export default function LoginScreen() {
           const userInfo = userInfoStr ? JSON.parse(userInfoStr) : null;
           await loginWithGoogleTokens(accessToken, refreshToken, userInfo);
         } else {
-          setError('Google sign-in failed. Missing tokens.');
+          setError('Falha no login com Google. Tokens ausentes.');
         }
       } else if (result.type !== 'cancel' && result.type !== 'dismiss') {
-        setError('Google sign-in was interrupted.');
+        setError('Login com Google foi interrompido.');
       }
     } catch (err: any) {
       console.log('[GoogleAuth] ERROR:', err?.message, err);
-      setError(err?.message || 'Google sign-in failed.');
+      setError(err?.message || 'Falha no login com Google.');
     } finally {
       setGoogleLoading(false);
     }
@@ -91,8 +93,8 @@ export default function LoginScreen() {
 
   const handleForgotPassword = () => {
     Alert.alert(
-      'Forgot Password',
-      'Password reset functionality coming soon. Please contact support.',
+      'Esqueceu a senha?',
+      'A funcionalidade de recuperar senha estará disponível em breve.',
     );
   };
 
@@ -108,8 +110,12 @@ export default function LoginScreen() {
       >
         {/* Logo / Header */}
         <View style={styles.header}>
-          <Text style={styles.logo}>{'\uD83D\uDD25 GymFire'}</Text>
-          <Text style={styles.subtitle}>Your fitness journey starts here</Text>
+          <Image
+            source={require('../../../assets/gymfire-logo.png')}
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
+          <Text style={styles.subtitle}>Sua jornada fitness começa aqui</Text>
         </View>
 
         {/* Form Card */}
@@ -123,10 +129,10 @@ export default function LoginScreen() {
             />
             <View style={styles.inputFlex}>
               <Input
-                label="Username or Email"
+                label="Usuário ou Email"
                 value={username}
                 onChangeText={setUsername}
-                placeholder="Enter your username"
+                placeholder="Digite seu usuário"
                 autoCapitalize="none"
               />
             </View>
@@ -141,23 +147,23 @@ export default function LoginScreen() {
             />
             <View style={styles.inputFlex}>
               <Input
-                label="Password"
+                label="Senha"
                 value={password}
                 onChangeText={setPassword}
-                placeholder="Enter your password"
+                placeholder="Digite sua senha"
                 secureTextEntry
               />
             </View>
           </View>
 
           <TouchableOpacity onPress={handleForgotPassword} style={styles.forgotRow}>
-            <Text style={styles.forgotText}>Forgot password?</Text>
+            <Text style={styles.forgotText}>Esqueceu a senha?</Text>
           </TouchableOpacity>
 
           {error && <Text style={styles.error}>{error}</Text>}
 
           <Button
-            title="Sign In"
+            title="Entrar"
             onPress={handleLogin}
             loading={loading}
             fullWidth
@@ -166,13 +172,13 @@ export default function LoginScreen() {
           {/* OR Divider */}
           <View style={styles.dividerRow}>
             <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>OR</Text>
+            <Text style={styles.dividerText}>OU</Text>
             <View style={styles.dividerLine} />
           </View>
 
           {/* Google Login */}
           <Button
-            title="Continue with Google"
+            title="Continuar com Google"
             onPress={handleGoogleLogin}
             loading={googleLoading}
             variant="outline"
@@ -186,8 +192,8 @@ export default function LoginScreen() {
           style={styles.bottomLink}
         >
           <Text style={styles.bottomText}>
-            {"Don't have an account? "}
-            <Text style={styles.bottomAccent}>Sign up</Text>
+            {'Não tem uma conta? '}
+            <Text style={styles.bottomAccent}>Cadastre-se</Text>
           </Text>
         </TouchableOpacity>
       </ScrollView>
@@ -209,11 +215,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: spacing.xxxl,
   },
-  logo: {
-    fontSize: fontSize.title,
-    fontWeight: fontWeight.bold as '700',
-    color: colors.primary,
-    letterSpacing: 2,
+  logoImage: {
+    width: 220,
+    height: 60,
+    marginBottom: spacing.sm,
   },
   subtitle: {
     ...typography.body,

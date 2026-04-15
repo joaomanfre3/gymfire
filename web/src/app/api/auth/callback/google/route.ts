@@ -138,7 +138,20 @@ export async function GET(request: NextRequest) {
       try {
         const state = JSON.parse(stateParam);
         if (state.mobile_redirect) {
-          return NextResponse.redirect(`${state.mobile_redirect}?${tokenParams.toString()}`);
+          const mobileUrl = `${state.mobile_redirect}?${tokenParams.toString()}`;
+          // Return HTML page that redirects via JS — NextResponse.redirect()
+          // doesn't work with custom schemes (gymfire://, exp://) on Vercel
+          return new NextResponse(
+            `<!DOCTYPE html>
+<html><head>
+<meta http-equiv="refresh" content="0;url=${mobileUrl}" />
+<script>window.location.href = ${JSON.stringify(mobileUrl)};</script>
+</head><body>Redirecting...</body></html>`,
+            {
+              status: 200,
+              headers: { 'Content-Type': 'text/html; charset=utf-8' },
+            }
+          );
         }
       } catch {
         // Invalid state JSON, fall through to web redirect

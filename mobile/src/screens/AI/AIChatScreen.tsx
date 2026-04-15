@@ -4,6 +4,7 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
+  Image,
   TextInput,
   FlatList,
   TouchableOpacity,
@@ -13,6 +14,7 @@ import {
   Platform,
   Alert,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing } from '../../theme';
 import api from '../../api/client';
@@ -68,6 +70,71 @@ function parseWorkoutJSON(content: string): ParsedAIWorkout | null {
 function cleanContent(content: string): string {
   return content.replace(/---TREINO_JSON---[\s\S]*?---FIM_JSON---/, '').trim();
 }
+
+function AIHeader({ usage, onNewConversation }: { usage: UsageInfo | null; onNewConversation: () => void }) {
+  const insets = useSafeAreaInsets();
+  const topPadding = Math.max(insets.top, Platform.OS === 'android' ? 24 : 0);
+
+  return (
+    <View style={[aiHeaderStyles.container, { paddingTop: topPadding }]}>
+      <View style={aiHeaderStyles.row}>
+        {usage ? (
+          <View style={aiHeaderStyles.usageBadge}>
+            <Text style={aiHeaderStyles.usageText}>{usage.remaining}/{usage.limit}</Text>
+          </View>
+        ) : (
+          <View style={aiHeaderStyles.iconBtn} />
+        )}
+
+        <Image
+          source={require('../../../assets/gymfire-logo-ia.png')}
+          style={aiHeaderStyles.logo}
+          resizeMode="contain"
+        />
+
+        <TouchableOpacity onPress={onNewConversation} style={aiHeaderStyles.iconBtn}>
+          <Ionicons name="add-circle-outline" size={26} color={colors.primary} />
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
+const aiHeaderStyles = StyleSheet.create({
+  container: {
+    backgroundColor: '#000000',
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    height: 48,
+  },
+  iconBtn: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  logo: {
+    width: 130,
+    height: 36,
+  },
+  usageBadge: {
+    backgroundColor: colors.surface,
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: colors.surfaceBorder,
+  },
+  usageText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: colors.textSecondary,
+  },
+});
 
 export default function AIChatScreen() {
   const [messages, setMessages] = useState<AIMessage[]>([]);
@@ -361,20 +428,7 @@ export default function AIChatScreen() {
       keyboardVerticalOffset={90}
     >
       {/* Header */}
-      <View style={styles.header}>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.headerTitle}>GymFire AI</Text>
-          <Text style={styles.headerSub}>Seu personal trainer virtual</Text>
-        </View>
-        {usage && (
-          <View style={styles.usageBadge}>
-            <Text style={styles.usageText}>{usage.remaining}/{usage.limit}</Text>
-          </View>
-        )}
-        <TouchableOpacity onPress={newConversation} style={{ marginLeft: 10, padding: 6 }}>
-          <Ionicons name="add-circle-outline" size={24} color={colors.primary} />
-        </TouchableOpacity>
-      </View>
+      <AIHeader usage={usage} onNewConversation={newConversation} />
 
       {/* Messages */}
       {messages.length === 0 && !streaming ? (
