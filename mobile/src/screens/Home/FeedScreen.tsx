@@ -54,12 +54,15 @@ const PAGE_SIZE = 20;
 
 function FeedHeader() {
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation<Nav>();
   const topPadding = Math.max(insets.top, Platform.OS === 'android' ? 24 : 0);
 
   return (
     <View style={[headerStyles.container, { paddingTop: topPadding }]}>
       <View style={headerStyles.row}>
-        <View style={headerStyles.iconBtn} />
+        <TouchableOpacity onPress={() => navigation.navigate('CreatePost')} style={headerStyles.iconBtn}>
+          <Ionicons name="add" size={28} color="#FFFFFF" />
+        </TouchableOpacity>
 
         <Image
           source={require('../../../assets/gymfire-logo.png')}
@@ -240,35 +243,75 @@ export default function FeedScreen() {
     return `${m}m`;
   };
 
-  // ── Render post card ─────────────────────────────────────────
+  // ── Format count (1k, 1.2M etc) ──────────────────────────────
+  const formatCount = (n: number): string => {
+    if (n >= 1000000) return `${(n / 1000000).toFixed(1).replace('.', ',')}M`;
+    if (n >= 1000) return `${(n / 1000).toFixed(1).replace('.', ',')}k`;
+    return String(n);
+  };
+
+  // ── Format timestamp uppercase ──────────────────────────────
+  const formatTimeUpper = (dateStr: string): string => {
+    const diff = Math.max(0, Date.now() - new Date(dateStr).getTime());
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return 'AGORA';
+    if (mins < 60) return `${mins} MINUTOS ATRÁS`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs} HORAS ATRÁS`;
+    const days = Math.floor(hrs / 24);
+    if (days < 7) return `${days} DIAS ATRÁS`;
+    const weeks = Math.floor(days / 7);
+    return `${weeks} SEMANAS ATRÁS`;
+  };
+
+  // ── Render post card (Instagram-style) ──────────────────────
   const renderPost = ({ item: post }: { item: Post }) => {
     const postUser = post.user;
     const initial = (postUser?.displayName || postUser?.username || '?')[0].toUpperCase();
     const bgColor = avatarColor(postUser?.username || 'u');
+    const mediaUrls: string[] = (post as any).mediaUrls || [];
+    const caption = (post as any).caption || post.content || '';
+    const username = postUser?.username || 'user';
 
     return (
-      <TouchableOpacity
-        style={styles.card}
-        activeOpacity={0.8}
-        onPress={() => navigation.navigate('PostDetail', { postId: post.id })}
-      >
-        {/* Header row */}
-        <View style={styles.cardHeader}>
-          <View style={[styles.avatar, { backgroundColor: bgColor }]}>
-            <Text style={styles.avatarText}>{initial}</Text>
-          </View>
-          <View style={styles.cardHeaderText}>
-            <Text style={styles.displayName} numberOfLines={1}>
-              {postUser?.displayName || 'User'}
+      <View style={styles.card}>
+        {/* 1. HEADER — 48h */}
+        <View style={styles.postHeader}>
+          <TouchableOpacity
+            style={styles.postHeaderLeft}
+            onPress={() => navigation.navigate('Profile' as any, { userId: postUser?.id })}
+            activeOpacity={0.7}
+          >
+            {postUser?.avatarUrl ? (
+              <Image source={{ uri: postUser.avatarUrl }} style={styles.headerAvatar} />
+            ) : (
+              <View style={[styles.headerAvatar, { backgroundColor: bgColor, alignItems: 'center', justifyContent: 'center' }]}>
+                <Text style={styles.headerAvatarText}>{initial}</Text>
+              </View>
+            )}
+            <Text style={styles.headerUsername}>
+              {username}
+              <Text style={styles.headerTime}> · {timeAgo(post.createdAt)}</Text>
             </Text>
-            <Text style={styles.meta}>
-              @{postUser?.username}  ·  {timeAgo(post.createdAt)}
-            </Text>
-          </View>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.menuBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <Ionicons name="ellipsis-horizontal" size={20} color="#fff" />
+          </TouchableOpacity>
         </View>
 
-        {/* Workout summary */}
-        {post.workout && (
+        {/* 2. MÍDIA — 4:5 */}
+        {mediaUrls.length > 0 && (
+          <View>
+            <Image
+              source={{ uri: mediaUrls[0] }}
+              style={styles.postMedia}
+              resizeMode="cover"
+            />
+          </View>
+        )}
+
+        {/* Workout summary (for workout posts without media) */}
+        {post.workout && mediaUrls.length === 0 && (
           <View style={styles.workoutBox}>
             <Text style={styles.workoutTitle}>{post.workout.name}</Text>
             <View style={styles.workoutStats}>
@@ -285,69 +328,60 @@ export default function FeedScreen() {
                 <Text style={styles.workoutStatText}>{formatDuration(post.workout.duration)}</Text>
               </View>
             </View>
-            {post.workout.sets && post.workout.sets.length > 0 && (
-              <View style={styles.exerciseList}>
-                {exerciseSummary(post.workout.sets).map((name, i) => (
-                  <Text key={i} style={styles.exerciseName}>
-                    {'\u2022'} {name}
-                  </Text>
-                ))}
-                {new Set(post.workout.sets.map((s) => s.exerciseId)).size > 3 && (
-                  <Text style={styles.exerciseMore}>
-                    +{new Set(post.workout.sets.map((s) => s.exerciseId)).size - 3} more
-                  </Text>
-                )}
-              </View>
-            )}
           </View>
         )}
 
-        {/* Caption */}
-        {post.content ? (
-          <Text style={styles.caption} numberOfLines={3}>
-            {post.content}
-          </Text>
-        ) : null}
-
-        {/* Action bar */}
-        <View style={styles.actionBar}>
-          <TouchableOpacity style={styles.actionBtn} onPress={() => toggleLike(post)}>
-            <Ionicons
-              name={post.isLiked ? 'heart' : 'heart-outline'}
-              size={20}
-              color={post.isLiked ? colors.like : colors.textMuted}
-            />
-            {post.likesCount > 0 && (
-              <Text style={[styles.actionCount, post.isLiked && { color: colors.like }]}>
-                {post.likesCount}
-              </Text>
-            )}
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.actionBtn} onPress={() => toggleFire(post)}>
-            <Ionicons
-              name={post.isFired ? 'flame' : 'flame-outline'}
-              size={20}
-              color={post.isFired ? colors.fire : colors.textMuted}
-            />
-            {post.sharesCount > 0 && (
-              <Text style={[styles.actionCount, post.isFired && { color: colors.fire }]}>
-                {post.sharesCount}
-              </Text>
-            )}
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.actionBtn}
-            onPress={() => navigation.navigate('PostDetail', { postId: post.id })}
-          >
-            <Ionicons name="chatbubble-outline" size={18} color={colors.textMuted} />
-            {post.commentsCount > 0 && (
-              <Text style={styles.actionCount}>{post.commentsCount}</Text>
-            )}
+        {/* 3. ACTION BAR — 44h */}
+        <View style={styles.postActions}>
+          <View style={styles.postActionsLeft}>
+            <TouchableOpacity style={styles.actionIcon} onPress={() => toggleLike(post)}>
+              <Ionicons
+                name={post.isLiked ? 'flame' : 'flame-outline'}
+                size={26}
+                color={post.isLiked ? '#FF6B35' : '#fff'}
+              />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.actionIcon}
+              onPress={() => navigation.navigate('PostDetail', { postId: post.id })}
+            >
+              <Ionicons name="chatbubble-outline" size={24} color="#fff" />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.actionIcon}>
+              <Ionicons name="paper-plane-outline" size={22} color="#fff" style={{ transform: [{ rotate: '-20deg' }] }} />
+            </TouchableOpacity>
+          </View>
+          <TouchableOpacity style={styles.actionIcon}>
+            <Ionicons name="bookmark-outline" size={24} color="#fff" />
           </TouchableOpacity>
         </View>
-      </TouchableOpacity>
+
+        {/* 4. ENGAJAMENTO */}
+        <View style={styles.engagement}>
+          {post.likesCount > 0 && (
+            <Text style={styles.likesCount}>
+              {formatCount(post.likesCount)} {post.likesCount === 1 ? 'curtida' : 'curtidas'}
+            </Text>
+          )}
+
+          {caption ? (
+            <Text style={styles.captionText} numberOfLines={2}>
+              <Text style={styles.captionUsername}>{username}</Text>
+              {'  '}{caption}
+            </Text>
+          ) : null}
+
+          {post.commentsCount > 0 && (
+            <TouchableOpacity onPress={() => navigation.navigate('PostDetail', { postId: post.id })}>
+              <Text style={styles.viewComments}>
+                Ver {post.commentsCount === 1 ? '1 comentário' : `todos os ${post.commentsCount} comentários`}
+              </Text>
+            </TouchableOpacity>
+          )}
+
+          <Text style={styles.postTimestamp}>{formatTimeUpper(post.createdAt)}</Text>
+        </View>
+      </View>
     );
   };
 
@@ -458,7 +492,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   listContent: {
-    paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
     paddingBottom: spacing.xxl,
   },
@@ -466,64 +499,75 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
 
-  // Card
+  // Card (Instagram-style, no borders/shadows)
   card: {
-    backgroundColor: colors.surface,
-    borderRadius: 16,
-    padding: spacing.lg,
-    marginBottom: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.surfaceBorder,
+    marginBottom: 12,
   },
-  cardHeader: {
+
+  // 1. Post Header
+  postHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing.md,
+    justifyContent: 'space-between',
+    height: 48,
+    paddingHorizontal: 12,
   },
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  postHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    gap: 10,
+  },
+  headerAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+  },
+  headerAvatarText: {
+    fontSize: 14,
+    fontWeight: '600' as '600',
+    color: '#fff',
+  },
+  headerUsername: {
+    fontSize: 13,
+    fontWeight: '600' as '600',
+    color: '#fff',
+  },
+  headerTime: {
+    fontWeight: '400' as '400',
+    color: '#a8a8a8',
+  },
+  menuBtn: {
+    width: 44,
+    height: 44,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarText: {
-    fontSize: fontSize.lg,
-    fontWeight: fontWeight.bold as '700',
-    color: '#FFFFFF',
-  },
-  cardHeaderText: {
-    marginLeft: spacing.md,
-    flex: 1,
-  },
-  displayName: {
-    fontSize: fontSize.md,
-    fontWeight: fontWeight.semibold as '600',
-    color: colors.text,
-  },
-  meta: {
-    fontSize: fontSize.xs,
-    color: colors.textMuted,
-    marginTop: 1,
+
+  // 2. Post Media
+  postMedia: {
+    width: '100%' as any,
+    aspectRatio: 4 / 5,
+    backgroundColor: '#1a1a1a',
   },
 
-  // Workout box
+  // Workout box (for workout posts without media)
   workoutBox: {
-    backgroundColor: colors.surfaceLight,
+    backgroundColor: '#111',
     borderRadius: 12,
-    padding: spacing.md,
-    marginBottom: spacing.md,
+    padding: 12,
+    marginHorizontal: 12,
+    marginBottom: 8,
   },
   workoutTitle: {
-    fontSize: fontSize.md,
-    fontWeight: fontWeight.semibold as '600',
-    color: colors.text,
-    marginBottom: spacing.sm,
+    fontSize: 14,
+    fontWeight: '600' as '600',
+    color: '#fff',
+    marginBottom: 8,
   },
   workoutStats: {
     flexDirection: 'row',
-    gap: spacing.lg,
-    marginBottom: spacing.sm,
+    gap: 16,
   },
   workoutStat: {
     flexDirection: 'row',
@@ -531,49 +575,58 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   workoutStatText: {
-    fontSize: fontSize.xs,
-    color: colors.textSecondary,
-  },
-  exerciseList: {
-    marginTop: spacing.xs,
-  },
-  exerciseName: {
-    fontSize: fontSize.sm,
-    color: colors.textSecondary,
-    marginBottom: 2,
-  },
-  exerciseMore: {
-    fontSize: fontSize.xs,
-    color: colors.textMuted,
-    marginTop: 2,
+    fontSize: 12,
+    color: '#a8a8a8',
   },
 
-  // Caption
-  caption: {
-    fontSize: fontSize.md,
-    color: colors.text,
-    lineHeight: 22,
-    marginBottom: spacing.md,
-  },
-
-  // Action bar
-  actionBar: {
+  // 3. Action Bar
+  postActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xl,
-    paddingTop: spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: colors.surfaceBorder,
+    justifyContent: 'space-between',
+    height: 44,
+    paddingHorizontal: 6,
   },
-  actionBtn: {
+  postActionsLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    paddingVertical: spacing.xs,
   },
-  actionCount: {
-    fontSize: fontSize.sm,
-    color: colors.textMuted,
+  actionIcon: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  // 4. Engagement
+  engagement: {
+    paddingHorizontal: 12,
+    paddingBottom: 8,
+    gap: 4,
+  },
+  likesCount: {
+    fontSize: 13,
+    fontWeight: '600' as '600',
+    color: '#fff',
+  },
+  captionText: {
+    fontSize: 13,
+    color: '#fff',
+    lineHeight: 18,
+  },
+  captionUsername: {
+    fontWeight: '600' as '600',
+  },
+  viewComments: {
+    fontSize: 13,
+    color: '#a8a8a8',
+  },
+  postTimestamp: {
+    fontSize: 11,
+    color: '#777',
+    letterSpacing: 0.3,
+    marginTop: 2,
   },
 
   // Empty state

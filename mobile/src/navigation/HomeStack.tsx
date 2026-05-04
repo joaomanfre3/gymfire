@@ -7,7 +7,11 @@ import PostDetailScreen from '../screens/Home/PostDetailScreen';
 import SpeedsViewerScreen from '../screens/Speeds/SpeedsViewerScreen';
 import SpeedCreatorScreen from '../screens/Speeds/SpeedCreatorScreen';
 import CreatePostScreen from '../screens/Home/CreatePostScreen';
-import MediaPickerScreen from '../screens/Home/MediaPickerScreen';
+import { NewCreatePostScreen } from '../screens/CreatePost';
+import ProfileScreen from '../screens/Profile/ProfileScreen';
+import UserPostsScreen from '../screens/Profile2/UserPostsScreen';
+import DropsFlowScreen from '../screens/Drops/DropsFlowScreen';
+import DropsEditorScreen from '../screens/Drops/DropsEditorScreen';
 
 
 const Stack = createNativeStackNavigator<HomeStackParamList>();
@@ -49,7 +53,7 @@ export default function HomeStack() {
       />
       <Stack.Screen
         name="MediaPicker"
-        component={MediaPickerScreen}
+        component={DropsFlowScreen}
         options={{
           headerShown: false,
           presentation: 'fullScreenModal',
@@ -57,9 +61,33 @@ export default function HomeStack() {
         }}
       />
       <Stack.Screen
+        name="DropsEditor"
+        component={DropsEditorScreen}
+        options={{
+          headerShown: false,
+          presentation: 'fullScreenModal',
+          animation: 'fade',
+        }}
+      />
+      <Stack.Screen
         name="CreatePost"
         component={CreatePostScreen}
         options={{ headerShown: false, presentation: 'modal' }}
+      />
+      <Stack.Screen
+        name="NewPost"
+        component={NewCreatePostScreen}
+        options={{ headerShown: false, animation: 'slide_from_right' }}
+      />
+      <Stack.Screen
+        name="Profile"
+        component={ProfileScreen}
+        options={{ headerShown: false, animation: 'slide_from_right' }}
+      />
+      <Stack.Screen
+        name="UserPosts"
+        component={UserPostsScreen}
+        options={{ headerShown: false, animation: 'slide_from_right' }}
       />
     </Stack.Navigator>
   );

@@ -61,9 +61,11 @@ export default function LoginScreen() {
     setError(null);
 
     try {
-      // Generate redirect URI for current environment (exp:// in Expo Go, gymfire:// in dev build)
+      // Generate redirect URI for current environment
       const redirectUri = makeRedirectUri({ scheme: APP_SCHEME, path: 'auth/callback' });
+      console.log('[GoogleAuth] redirectUri:', redirectUri);
       const authUrl = `${API_BASE}/api/auth/google?mobile_redirect=${encodeURIComponent(redirectUri)}`;
+      console.log('[GoogleAuth] authUrl:', authUrl);
 
       // Open browser — listen for redirect back to our app
       const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUri);

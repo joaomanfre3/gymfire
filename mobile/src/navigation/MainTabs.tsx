@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { NavigationIndependentTree, NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { colors } from '../theme';
 import { useAuthStore } from '../stores/authStore';
+import { useDropsStore } from '../stores/dropsStore';
 import HomeStack from './HomeStack';
 import WorkoutStack from './WorkoutStack';
 import SocialStack from './SocialStack';
@@ -100,6 +101,7 @@ function CustomTabBar({
 export default function MainTabs() {
   const pagerRef = useRef<PagerView>(null);
   const [activeIndex, setActiveIndex] = React.useState(0);
+  const isDropsOpen = useDropsStore((s) => s.isDropsOpen);
 
   const onTabPress = useCallback((index: number) => {
     pagerRef.current?.setPage(index);
@@ -117,7 +119,8 @@ export default function MainTabs() {
         style={styles.pager}
         initialPage={0}
         onPageSelected={onPageSelected}
-        overdrag={true}
+        overdrag={!isDropsOpen}
+        scrollEnabled={!isDropsOpen}
       >
         {TAB_SCREENS.map((Screen, index) => (
           <View key={TAB_KEYS[index]} style={styles.page}>
@@ -129,7 +132,9 @@ export default function MainTabs() {
           </View>
         ))}
       </PagerView>
-      <CustomTabBar activeIndex={activeIndex} onTabPress={onTabPress} />
+      {!isDropsOpen && (
+        <CustomTabBar activeIndex={activeIndex} onTabPress={onTabPress} />
+      )}
     </View>
   );
 }

@@ -1,6 +1,6 @@
 'use strict';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   StyleSheet,
   Dimensions,
   ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -18,18 +19,18 @@ import * as MediaLibrary from 'expo-media-library';
 import * as ImagePicker from 'expo-image-picker';
 import { colors } from '../../theme';
 import { HomeStackParamList } from '../../navigation/types';
+import { useDropsStore } from '../../stores/dropsStore';
 
 type Props = NativeStackScreenProps<HomeStackParamList, 'MediaPicker'>;
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const NUM_COLUMNS = 4;
+const NUM_COLUMNS = 3;
 const THUMB_GAP = 2;
 const THUMB_SIZE = (SCREEN_WIDTH - THUMB_GAP * (NUM_COLUMNS - 1)) / NUM_COLUMNS;
 
 const CAMERA_ID = '__camera__';
 
 type Album = { id: string; title: string; assetCount: number };
-type GalleryMode = 'loading' | 'native' | 'fallback';
 
 function formatDuration(seconds: number): string {
   const m = Math.floor(seconds / 60);
@@ -39,18 +40,23 @@ function formatDuration(seconds: number): string {
 
 export default function MediaPickerScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
+  const setDropsOpen = useDropsStore((s) => s.setDropsOpen);
 
-  const [mode, setMode] = useState<GalleryMode>('loading');
+  useEffect(() => {
+    setDropsOpen(true);
+    return () => setDropsOpen(false);
+  }, [setDropsOpen]);
+
   const [assets, setAssets] = useState<MediaLibrary.Asset[]>([]);
-  const [selectedAsset, setSelectedAsset] = useState<MediaLibrary.Asset | null>(null);
   const [albums, setAlbums] = useState<Album[]>([]);
   const [currentAlbum, setCurrentAlbum] = useState<Album | null>(null);
   const [showAlbumPicker, setShowAlbumPicker] = useState(false);
   const [endCursor, setEndCursor] = useState<string | undefined>(undefined);
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(true);
+  const [hasNativeAccess, setHasNativeAccess] = useState(true);
 
-  // ── Try native gallery, fallback to system picker ────────────
+  // ── Init gallery ────────────────────────────────────────────
   const initGallery = useCallback(async () => {
     try {
       const perm = await MediaLibrary.requestPermissionsAsync();
@@ -64,10 +70,17 @@ export default function MediaPickerScreen({ navigation }: Props) {
         sortBy: [MediaLibrary.SortBy.creationTime],
       });
 
+      // Expo Go on Android returns 0 assets due to limited access
+      if (result.assets.length === 0) {
+        setHasNativeAccess(false);
+        setLoading(false);
+        return;
+      }
+
       setAssets(result.assets);
       setEndCursor(result.endCursor);
       setHasMore(result.hasNextPage);
-      setMode('native');
+      setHasNativeAccess(true);
       setLoading(false);
 
       // Load albums
@@ -80,7 +93,7 @@ export default function MediaPickerScreen({ navigation }: Props) {
         setAlbums(mapped);
       } catch {}
     } catch {
-      setMode('fallback');
+      setHasNativeAccess(false);
       setLoading(false);
     }
   }, []);
@@ -89,7 +102,7 @@ export default function MediaPickerScreen({ navigation }: Props) {
     initGallery();
   }, [initGallery]);
 
-  // ── Pagination (native mode only) ───────────────────────────
+  // ── Pagination ──────────────────────────────────────────────
   const loadAssets = useCallback(
     async (reset: boolean) => {
       try {
@@ -118,7 +131,7 @@ export default function MediaPickerScreen({ navigation }: Props) {
   );
 
   useEffect(() => {
-    if (mode === 'native' && currentAlbum !== null) {
+    if (hasNativeAccess && currentAlbum !== null) {
       setLoading(true);
       setEndCursor(undefined);
       loadAssets(true);
@@ -126,26 +139,28 @@ export default function MediaPickerScreen({ navigation }: Props) {
   }, [currentAlbum]);
 
   const loadMore = useCallback(() => {
-    if (hasMore && !loading && mode === 'native') {
+    if (hasMore && !loading && hasNativeAccess) {
       loadAssets(false);
     }
-  }, [hasMore, loading, loadAssets, mode]);
+  }, [hasMore, loading, loadAssets, hasNativeAccess]);
 
   const selectAlbum = (album: Album | null) => {
     setCurrentAlbum(album);
     setShowAlbumPicker(false);
     setAssets([]);
-    setSelectedAsset(null);
     setEndCursor(undefined);
   };
 
-  const handleNext = () => {
-    if (selectedAsset) {
-      navigation.navigate('SpeedCreator', { mediaUri: selectedAsset.uri });
-    }
+  const openEditor = (uri: string) => {
+    navigation.navigate('DropsEditor', { mediaUri: uri });
   };
 
-  // ── Fallback: open system picker ─────────────────────────────
+  const openCamera = () => {
+    // Camera is now handled by DropsFlowScreen
+  };
+
+
+  // Fallback: if no native gallery access, open system picker when tapping a "gallery" area
   const openSystemPicker = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images', 'videos'],
@@ -155,27 +170,12 @@ export default function MediaPickerScreen({ navigation }: Props) {
       videoMaxDuration: 60,
     });
     if (!result.canceled && result.assets[0]) {
-      navigation.navigate('SpeedCreator', { mediaUri: result.assets[0].uri });
-    }
-  };
-
-  const openCamera = async () => {
-    const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    if (status !== 'granted') return;
-    const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ['images', 'videos'],
-      quality: 0.85,
-      allowsEditing: true,
-      aspect: [9, 16],
-      videoMaxDuration: 60,
-    });
-    if (!result.canceled && result.assets[0]) {
-      navigation.navigate('SpeedCreator', { mediaUri: result.assets[0].uri });
+      openEditor(result.assets[0].uri);
     }
   };
 
   // ── Loading state ────────────────────────────────────────────
-  if (mode === 'loading') {
+  if (loading && assets.length === 0) {
     return (
       <View style={[styles.container, { paddingTop: insets.top }]}>
         <View style={styles.header}>
@@ -190,63 +190,7 @@ export default function MediaPickerScreen({ navigation }: Props) {
     );
   }
 
-  // ── Fallback mode (Expo Go) ──────────────────────────────────
-  if (mode === 'fallback') {
-    return (
-      <View style={[styles.container, { paddingTop: insets.top }]}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerBtn}>
-            <Ionicons name="close" size={28} color={colors.text} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Adicionar ao drop</Text>
-          <View style={styles.headerBtn} />
-        </View>
-
-        {/* Quick action chips */}
-        <View style={styles.chipsRow}>
-          <View style={styles.chip}>
-            <Text style={styles.chipEmoji}>🎭</Text>
-            <Text style={styles.chipText}>GIF</Text>
-          </View>
-          <View style={styles.chip}>
-            <Ionicons name="grid-outline" size={16} color={colors.text} />
-            <Text style={styles.chipText}>Modelos</Text>
-          </View>
-          <View style={styles.chip}>
-            <Ionicons name="musical-notes-outline" size={16} color={colors.text} />
-            <Text style={styles.chipText}>Música</Text>
-          </View>
-          <View style={styles.chip}>
-            <Ionicons name="copy-outline" size={16} color={colors.text} />
-            <Text style={styles.chipText}>Colagem</Text>
-          </View>
-        </View>
-
-        {/* Fallback picker options */}
-        <View style={styles.fallbackContent}>
-          <TouchableOpacity style={styles.fallbackCard} onPress={openCamera} activeOpacity={0.7}>
-            <View style={styles.fallbackIconWrap}>
-              <Ionicons name="camera" size={36} color="#FFF" />
-            </View>
-            <Text style={styles.fallbackCardTitle}>Câmera</Text>
-            <Text style={styles.fallbackCardSub}>Tirar foto ou gravar vídeo</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.fallbackCard} onPress={openSystemPicker} activeOpacity={0.7}>
-            <View style={[styles.fallbackIconWrap, { backgroundColor: 'rgba(139,92,246,0.25)' }]}>
-              <Ionicons name="images" size={36} color="#8B5CF6" />
-            </View>
-            <Text style={styles.fallbackCardTitle}>Galeria</Text>
-            <Text style={styles.fallbackCardSub}>Escolher da galeria</Text>
-          </TouchableOpacity>
-        </View>
-
-        <Text style={styles.fallbackFooter}>Drops expiram em 24h</Text>
-      </View>
-    );
-  }
-
-  // ── Native mode (dev build / production) ─────────────────────
+  // ── Grid data ───────────────────────────────────────────────
   const gridData = [{ id: CAMERA_ID } as MediaLibrary.Asset, ...assets];
 
   const renderThumb = ({ item }: { item: MediaLibrary.Asset }) => {
@@ -262,26 +206,18 @@ export default function MediaPickerScreen({ navigation }: Props) {
       );
     }
 
-    const isSelected = selectedAsset?.id === item.id;
     const isVideo = item.mediaType === 'video';
 
     return (
       <TouchableOpacity
         activeOpacity={0.7}
-        onPress={() => setSelectedAsset(item)}
+        onPress={() => openEditor(item.uri)}
         style={styles.thumbWrap}
       >
         <Image source={{ uri: item.uri }} style={styles.thumbImg} />
         {isVideo && (
           <View style={styles.videoBadge}>
             <Text style={styles.videoBadgeText}>{formatDuration(item.duration)}</Text>
-          </View>
-        )}
-        {isSelected && (
-          <View style={styles.selectedOverlay}>
-            <View style={styles.selectedCircle}>
-              <Ionicons name="checkmark" size={14} color="#FFF" />
-            </View>
           </View>
         )}
       </TouchableOpacity>
@@ -304,10 +240,6 @@ export default function MediaPickerScreen({ navigation }: Props) {
       {/* Quick action chips */}
       <View style={styles.chipsRow}>
         <View style={styles.chip}>
-          <Text style={styles.chipEmoji}>🎭</Text>
-          <Text style={styles.chipText}>GIF</Text>
-        </View>
-        <View style={styles.chip}>
           <Ionicons name="grid-outline" size={16} color={colors.text} />
           <Text style={styles.chipText}>Modelos</Text>
         </View>
@@ -321,7 +253,7 @@ export default function MediaPickerScreen({ navigation }: Props) {
         </View>
       </View>
 
-      {/* Album selector */}
+      {/* Album selector + Selecionar */}
       <View style={styles.albumBar}>
         <TouchableOpacity
           style={styles.albumSelector}
@@ -336,6 +268,13 @@ export default function MediaPickerScreen({ navigation }: Props) {
             color={colors.text}
           />
         </TouchableOpacity>
+
+        {!hasNativeAccess && (
+          <TouchableOpacity onPress={openSystemPicker} style={styles.selectBtn}>
+            <Ionicons name="albums-outline" size={16} color={colors.text} />
+            <Text style={styles.selectBtnText}>Selecionar</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Album picker dropdown */}
@@ -373,14 +312,10 @@ export default function MediaPickerScreen({ navigation }: Props) {
       )}
 
       {/* Gallery grid */}
-      {loading && assets.length === 0 ? (
-        <View style={styles.loadingGallery}>
-          <ActivityIndicator size="large" color={colors.primary} />
-        </View>
-      ) : (
+      {hasNativeAccess ? (
         <FlatList
           data={gridData}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item, index) => `${item.id}_${index}`}
           renderItem={renderThumb}
           numColumns={NUM_COLUMNS}
           columnWrapperStyle={{ gap: THUMB_GAP }}
@@ -388,6 +323,11 @@ export default function MediaPickerScreen({ navigation }: Props) {
           onEndReached={loadMore}
           onEndReachedThreshold={0.5}
           showsVerticalScrollIndicator={false}
+          getItemLayout={(_data, index) => ({
+            length: THUMB_SIZE + THUMB_GAP,
+            offset: (THUMB_SIZE + THUMB_GAP) * Math.floor(index / NUM_COLUMNS),
+            index,
+          })}
           ListFooterComponent={
             hasMore ? (
               <ActivityIndicator
@@ -398,17 +338,39 @@ export default function MediaPickerScreen({ navigation }: Props) {
             ) : null
           }
         />
-      )}
+      ) : (
+        /* Fallback: Expo Go limited access — grid with camera + gallery picker cards */
+        <View style={styles.fallbackGrid}>
+          {/* Camera card */}
+          <TouchableOpacity
+            style={[styles.thumbWrap, styles.cameraCard]}
+            onPress={openCamera}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="camera" size={32} color="rgba(255,255,255,0.5)" />
+          </TouchableOpacity>
 
-      {/* Floating next button */}
-      {selectedAsset && (
-        <View style={[styles.floatingBtnWrap, { paddingBottom: Math.max(insets.bottom, 16) }]}>
-          <TouchableOpacity style={styles.floatingBtn} onPress={handleNext} activeOpacity={0.8}>
-            <Text style={styles.floatingBtnText}>Avançar</Text>
-            <Ionicons name="arrow-forward" size={18} color="#FFF" />
+          {/* Gallery picker cards - fill the rest of the row */}
+          <TouchableOpacity
+            style={[styles.thumbWrap, styles.galleryPickerCard]}
+            onPress={openSystemPicker}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="images" size={28} color="#FF6B35" />
+            <Text style={styles.galleryPickerText}>Escolher{'\n'}foto</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.thumbWrap, styles.galleryPickerCard]}
+            onPress={openSystemPicker}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="videocam" size={28} color="#4ECDC4" />
+            <Text style={styles.galleryPickerText}>Escolher{'\n'}vídeo</Text>
           </TouchableOpacity>
         </View>
       )}
+
     </View>
   );
 }
@@ -455,9 +417,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
   },
-  chipEmoji: {
-    fontSize: 14,
-  },
   chipText: {
     fontSize: 13,
     fontWeight: '600',
@@ -468,6 +427,7 @@ const styles = StyleSheet.create({
   albumBar: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 14,
     paddingVertical: 10,
   },
@@ -478,6 +438,20 @@ const styles = StyleSheet.create({
   },
   albumName: {
     fontSize: 15,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  selectBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  selectBtnText: {
+    fontSize: 13,
     fontWeight: '600',
     color: colors.text,
   },
@@ -585,54 +559,23 @@ const styles = StyleSheet.create({
     color: '#FFF',
   },
 
-  // Loading
-  loadingGallery: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  // Fallback mode (Expo Go)
-  fallbackContent: {
-    flex: 1,
+  // Fallback (no native gallery access — Expo Go)
+  fallbackGrid: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: THUMB_GAP,
+  },
+  galleryPickerCard: {
+    backgroundColor: '#1A1A1A',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 16,
-    paddingHorizontal: 24,
+    gap: 6,
   },
-  fallbackCard: {
-    flex: 1,
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderRadius: 20,
-    paddingVertical: 32,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-  },
-  fallbackIconWrap: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: 'rgba(255,107,53,0.25)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 14,
-  },
-  fallbackCardTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#FFF',
-    marginBottom: 4,
-  },
-  fallbackCardSub: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.45)',
-  },
-  fallbackFooter: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.25)',
+  galleryPickerText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.6)',
     textAlign: 'center',
-    paddingBottom: 20,
+    lineHeight: 14,
   },
 });

@@ -24,7 +24,7 @@ export default function SocialStack() {
       <Stack.Screen
         name="Search"
         component={SearchScreen}
-        options={{ title: 'Explore' }}
+        options={{ headerShown: false }}
       />
       <Stack.Screen
         name="Ranking"

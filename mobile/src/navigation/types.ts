@@ -18,7 +18,11 @@ export type HomeStackParamList = {
   SpeedsViewer: { userId: string };
   SpeedCreator: { mediaUri?: string } | undefined;
   MediaPicker: undefined;
+  DropsEditor: { mediaUri: string };
   CreatePost: { mediaUri?: string } | undefined;
+  NewPost: { mediaUri: string };
+  Profile: { userId: string };
+  UserPosts: { userId: string; initialPostId?: string };
 };
 
 export type WorkoutStackParamList = {
@@ -53,4 +57,5 @@ export type ProfileStackParamList = {
   Settings: undefined;
   Notifications: undefined;
   Premium: undefined;
+  UserPosts: { userId: string; initialPostId?: string };
 };
